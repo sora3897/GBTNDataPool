@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Shared local data pool for Alex's trading bots. Stdlib only. Append-only JSON Lines.
+"""Shared local data pool for a paper-trading desk. Stdlib only. Append-only JSON Lines.
 
     from pool import add, query
     add(source_bot="futures_kb", type="backtest", symbol="ES", label="backtest", payload={...})

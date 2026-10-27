@@ -30,8 +30,12 @@ Records are append-only. Do not edit or delete existing lines. A record is corre
 
 ## No secrets
 
-Do not add private keys, API keys, tokens, seed phrases, or broker or MT5 login numbers. `submit()`, `intake`
-and `add()` reject payloads that look like secrets. Keep them out of markdown, summary and decision files as well.
+Do not add private keys, API keys, tokens, seed phrases, broker or MT5 login numbers, account numbers, balances, personal names, or broker account ids. `submit()`, `intake`
+and `add()` reject payloads that look like secrets or account data. Keep them out of markdown, summary and decision files as well.
+
+## Bug records and sharing
+
+`type: bug_report` is stored in `bugs/records.jsonl`. The payload carries symptom, component, platform, health_check_code, root_cause, fix_steps, status (`open`, `fixed`, or `workaround`), fixed_in, and supersedes. Upstream posts of trades or bugs wait until `config/user_settings.json` has sharing on and the user has confirmed the first submission. The local queue does not wait on that switch.
 
 ## Labels and time
 
