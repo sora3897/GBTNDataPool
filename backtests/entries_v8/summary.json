@@ -1,0 +1,497 @@
+{
+ "E10": {
+  "n_candidates": 816,
+  "exits": {
+   "session": 217,
+   "target": 217,
+   "breakeven": 172,
+   "stop": 133,
+   "stop_gap": 43,
+   "target_gap": 34
+  },
+  "recent200_IS": {
+   "trades": 93,
+   "win_pct": 44.1,
+   "net_usd": 6235,
+   "ret_pct": 12.47,
+   "pf": 1.68,
+   "max_dd_pct": -2.34,
+   "avgR_gross": 0.17,
+   "worst_day_usd": -491,
+   "avg_contracts": 2.0,
+   "range": [
+    "2026-04-02",
+    "2026-07-31"
+   ],
+   "per_symbol": {
+    "ES": 2137.0,
+    "GC": 782.0,
+    "NQ": 3316.0
+   },
+   "rand_median": -560,
+   "rand_pctile": 100.0
+  },
+  "recent200_OOS": {
+   "trades": 68,
+   "win_pct": 44.1,
+   "net_usd": 4371,
+   "ret_pct": 8.74,
+   "pf": 1.62,
+   "max_dd_pct": -2.57,
+   "avgR_gross": 0.128,
+   "worst_day_usd": -848,
+   "avg_contracts": 2.2,
+   "range": [
+    "2026-07-31",
+    "2026-10-23"
+   ],
+   "per_symbol": {
+    "ES": 1747.0,
+    "GC": 1913.0,
+    "NQ": 711.0
+   },
+   "rand_median": -1364,
+   "rand_pctile": 98.0
+  },
+  "full_IS": {
+   "trades": 427,
+   "win_pct": 43.8,
+   "net_usd": 23021,
+   "ret_pct": 46.04,
+   "pf": 1.58,
+   "max_dd_pct": -4.57,
+   "avgR_gross": 0.139,
+   "worst_day_usd": -1031,
+   "avg_contracts": 3.1,
+   "range": [
+    "2024-06-06",
+    "2025-10-31"
+   ],
+   "per_symbol": {
+    "ES": 7921.0,
+    "GC": 7025.0,
+    "NQ": 8075.0
+   },
+   "rand_median": -11804,
+   "rand_pctile": 100.0
+  },
+  "full_OOS": {
+   "trades": 267,
+   "win_pct": 46.4,
+   "net_usd": 21090,
+   "ret_pct": 42.18,
+   "pf": 1.89,
+   "max_dd_pct": -2.66,
+   "avgR_gross": 0.192,
+   "worst_day_usd": -871,
+   "avg_contracts": 2.0,
+   "range": [
+    "2025-11-04",
+    "2026-10-23"
+   ],
+   "per_symbol": {
+    "ES": 7607.0,
+    "GC": 4752.0,
+    "NQ": 8732.0
+   },
+   "rand_median": -3722,
+   "rand_pctile": 100.0
+  }
+ },
+ "E21": {
+  "n_candidates": 646,
+  "exits": {
+   "target": 184,
+   "session": 149,
+   "breakeven": 142,
+   "stop": 104,
+   "stop_gap": 36,
+   "target_gap": 31
+  },
+  "recent200_IS": {
+   "trades": 103,
+   "win_pct": 49.5,
+   "net_usd": 11671,
+   "ret_pct": 23.34,
+   "pf": 2.54,
+   "max_dd_pct": -2.96,
+   "avgR_gross": 0.285,
+   "worst_day_usd": -725,
+   "avg_contracts": 1.9,
+   "range": [
+    "2026-03-11",
+    "2026-07-23"
+   ],
+   "per_symbol": {
+    "ES": 4254.0,
+    "GC": 2815.0,
+    "NQ": 4602.0
+   },
+   "rand_median": 528,
+   "rand_pctile": 100.0
+  },
+  "recent200_OOS": {
+   "trades": 68,
+   "win_pct": 45.6,
+   "net_usd": 4621,
+   "ret_pct": 9.24,
+   "pf": 1.64,
+   "max_dd_pct": -1.8,
+   "avgR_gross": 0.141,
+   "worst_day_usd": -632,
+   "avg_contracts": 2.3,
+   "range": [
+    "2026-07-24",
+    "2026-10-23"
+   ],
+   "per_symbol": {
+    "ES": 2595.0,
+    "GC": 292.0,
+    "NQ": 1734.0
+   },
+   "rand_median": -942,
+   "rand_pctile": 100.0
+  },
+  "full_IS": {
+   "trades": 350,
+   "win_pct": 43.1,
+   "net_usd": 20282,
+   "ret_pct": 40.56,
+   "pf": 1.61,
+   "max_dd_pct": -4.29,
+   "avgR_gross": 0.15,
+   "worst_day_usd": -1031,
+   "avg_contracts": 3.2,
+   "range": [
+    "2024-07-03",
+    "2025-12-11"
+   ],
+   "per_symbol": {
+    "ES": 5411.0,
+    "GC": 8874.0,
+    "NQ": 5997.0
+   },
+   "rand_median": -9074,
+   "rand_pctile": 100.0
+  },
+  "full_OOS": {
+   "trades": 225,
+   "win_pct": 47.6,
+   "net_usd": 20099,
+   "ret_pct": 40.2,
+   "pf": 2.06,
+   "max_dd_pct": -2.78,
+   "avgR_gross": 0.216,
+   "worst_day_usd": -725,
+   "avg_contracts": 2.0,
+   "range": [
+    "2025-12-15",
+    "2026-10-23"
+   ],
+   "per_symbol": {
+    "ES": 7931.0,
+    "GC": 3541.0,
+    "NQ": 8626.0
+   },
+   "rand_median": -1263,
+   "rand_pctile": 100.0
+  }
+ },
+ "E22": {
+  "n_candidates": 816,
+  "exits": {
+   "session": 314,
+   "breakeven": 206,
+   "stop": 133,
+   "target": 110,
+   "stop_gap": 43,
+   "target_gap": 10
+  },
+  "recent200_IS": {
+   "trades": 93,
+   "win_pct": 39.8,
+   "net_usd": 5337,
+   "ret_pct": 10.67,
+   "pf": 1.58,
+   "max_dd_pct": -2.98,
+   "avgR_gross": 0.152,
+   "worst_day_usd": -505,
+   "avg_contracts": 2.0,
+   "range": [
+    "2026-04-02",
+    "2026-07-31"
+   ],
+   "per_symbol": {
+    "ES": 1551.0,
+    "GC": 178.0,
+    "NQ": 3608.0
+   },
+   "rand_median": -450,
+   "rand_pctile": 94.0
+  },
+  "recent200_OOS": {
+   "trades": 67,
+   "win_pct": 40.3,
+   "net_usd": 4312,
+   "ret_pct": 8.62,
+   "pf": 1.62,
+   "max_dd_pct": -2.9,
+   "avgR_gross": 0.132,
+   "worst_day_usd": -848,
+   "avg_contracts": 2.2,
+   "range": [
+    "2026-07-31",
+    "2026-10-23"
+   ],
+   "per_symbol": {
+    "ES": 1580.0,
+    "GC": 2105.0,
+    "NQ": 627.0
+   },
+   "rand_median": -1042,
+   "rand_pctile": 100.0
+  },
+  "full_IS": {
+   "trades": 426,
+   "win_pct": 39.7,
+   "net_usd": 26924,
+   "ret_pct": 53.85,
+   "pf": 1.68,
+   "max_dd_pct": -4.09,
+   "avgR_gross": 0.159,
+   "worst_day_usd": -1031,
+   "avg_contracts": 3.1,
+   "range": [
+    "2024-06-06",
+    "2025-10-31"
+   ],
+   "per_symbol": {
+    "ES": 9898.0,
+    "GC": 8318.0,
+    "NQ": 8708.0
+   },
+   "rand_median": -6178,
+   "rand_pctile": 100.0
+  },
+  "full_OOS": {
+   "trades": 266,
+   "win_pct": 42.5,
+   "net_usd": 20171,
+   "ret_pct": 40.34,
+   "pf": 1.85,
+   "max_dd_pct": -2.68,
+   "avgR_gross": 0.187,
+   "worst_day_usd": -871,
+   "avg_contracts": 2.0,
+   "range": [
+    "2025-11-04",
+    "2026-10-23"
+   ],
+   "per_symbol": {
+    "ES": 6926.0,
+    "GC": 4288.0,
+    "NQ": 8958.0
+   },
+   "rand_median": -3309,
+   "rand_pctile": 100.0
+  }
+ },
+ "E23": {
+  "n_candidates": 816,
+  "exits": {
+   "session": 282,
+   "target": 239,
+   "stop": 168,
+   "breakeven": 73,
+   "target_gap": 34,
+   "stop_gap": 20
+  },
+  "recent200_IS": {
+   "trades": 93,
+   "win_pct": 54.8,
+   "net_usd": 6123,
+   "ret_pct": 12.25,
+   "pf": 1.58,
+   "max_dd_pct": -3.9,
+   "avgR_gross": 0.167,
+   "worst_day_usd": -866,
+   "avg_contracts": 2.0,
+   "range": [
+    "2026-04-02",
+    "2026-07-31"
+   ],
+   "per_symbol": {
+    "ES": 2200.0,
+    "GC": 154.0,
+    "NQ": 3769.0
+   },
+   "rand_median": -786,
+   "rand_pctile": 100.0
+  },
+  "recent200_OOS": {
+   "trades": 68,
+   "win_pct": 47.1,
+   "net_usd": 3131,
+   "ret_pct": 6.26,
+   "pf": 1.36,
+   "max_dd_pct": -2.57,
+   "avgR_gross": 0.087,
+   "worst_day_usd": -854,
+   "avg_contracts": 2.2,
+   "range": [
+    "2026-07-31",
+    "2026-10-23"
+   ],
+   "per_symbol": {
+    "ES": 892.0,
+    "GC": 1522.0,
+    "NQ": 717.0
+   },
+   "rand_median": -1424,
+   "rand_pctile": 94.0
+  },
+  "full_IS": {
+   "trades": 425,
+   "win_pct": 52.5,
+   "net_usd": 24466,
+   "ret_pct": 48.93,
+   "pf": 1.53,
+   "max_dd_pct": -6.55,
+   "avgR_gross": 0.145,
+   "worst_day_usd": -1031,
+   "avg_contracts": 3.1,
+   "range": [
+    "2024-06-06",
+    "2025-10-31"
+   ],
+   "per_symbol": {
+    "ES": 6466.0,
+    "GC": 8594.0,
+    "NQ": 9406.0
+   },
+   "rand_median": -7450,
+   "rand_pctile": 100.0
+  },
+  "full_OOS": {
+   "trades": 267,
+   "win_pct": 54.3,
+   "net_usd": 19267,
+   "ret_pct": 38.53,
+   "pf": 1.67,
+   "max_dd_pct": -3.27,
+   "avgR_gross": 0.177,
+   "worst_day_usd": -871,
+   "avg_contracts": 2.0,
+   "range": [
+    "2025-11-04",
+    "2026-10-23"
+   ],
+   "per_symbol": {
+    "ES": 7493.0,
+    "GC": 2970.0,
+    "NQ": 8804.0
+   },
+   "rand_median": -2626,
+   "rand_pctile": 100.0
+  }
+ },
+ "E24": {
+  "n_candidates": 819,
+  "exits": {
+   "session": 544,
+   "stop": 90,
+   "target": 89,
+   "breakeven": 75,
+   "stop_gap": 13,
+   "target_gap": 8
+  },
+  "recent200_IS": {
+   "trades": 77,
+   "win_pct": 58.4,
+   "net_usd": 7520,
+   "ret_pct": 15.04,
+   "pf": 2.88,
+   "max_dd_pct": -2.67,
+   "avgR_gross": 0.252,
+   "worst_day_usd": -620,
+   "avg_contracts": 1.5,
+   "range": [
+    "2026-03-10",
+    "2026-07-16"
+   ],
+   "per_symbol": {
+    "ES": 2759.0,
+    "GC": 1889.0,
+    "NQ": 2871.0
+   },
+   "rand_median": -502,
+   "rand_pctile": 100.0
+  },
+  "recent200_OOS": {
+   "trades": 61,
+   "win_pct": 37.7,
+   "net_usd": -1831,
+   "ret_pct": -3.66,
+   "pf": 0.72,
+   "max_dd_pct": -5.05,
+   "avgR_gross": -0.086,
+   "worst_day_usd": -615,
+   "avg_contracts": 1.4,
+   "range": [
+    "2026-07-20",
+    "2026-10-22"
+   ],
+   "per_symbol": {
+    "ES": -511.0,
+    "GC": -663.0,
+    "NQ": -657.0
+   },
+   "rand_median": -1164,
+   "rand_pctile": 30.0
+  },
+  "full_IS": {
+   "trades": 406,
+   "win_pct": 42.9,
+   "net_usd": 3921,
+   "ret_pct": 7.84,
+   "pf": 1.11,
+   "max_dd_pct": -8.57,
+   "avgR_gross": 0.027,
+   "worst_day_usd": -917,
+   "avg_contracts": 2.2,
+   "range": [
+    "2024-06-06",
+    "2025-10-20"
+   ],
+   "per_symbol": {
+    "ES": 3982.0,
+    "GC": 788.0,
+    "NQ": -849.0
+   },
+   "rand_median": -3800,
+   "rand_pctile": 94.0
+  },
+  "full_OOS": {
+   "trades": 225,
+   "win_pct": 48.9,
+   "net_usd": 6808,
+   "ret_pct": 13.62,
+   "pf": 1.37,
+   "max_dd_pct": -4.31,
+   "avgR_gross": 0.076,
+   "worst_day_usd": -791,
+   "avg_contracts": 1.6,
+   "range": [
+    "2025-10-20",
+    "2026-10-22"
+   ],
+   "per_symbol": {
+    "ES": 4353.0,
+    "GC": 64.0,
+    "NQ": 2391.0
+   },
+   "rand_median": -2424,
+   "rand_pctile": 98.0
+  }
+ }
+}

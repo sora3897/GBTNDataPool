@@ -1,0 +1,893 @@
+{
+ "results": {
+  "E1": {
+   "recent200": {
+    "IS": {
+     "range": [
+      "2026-07-15",
+      "2026-09-15"
+     ],
+     "candidates": 120,
+     "S4_comp": {
+      "trades": 86,
+      "win_pct": 46.5,
+      "net_usd": -781,
+      "ret_pct": -1.56,
+      "pf": 0.94,
+      "max_dd_pct": -5.97,
+      "avgR_gross": -0.036,
+      "worst_day_usd": -901,
+      "avg_contracts": 2.2,
+      "rand_median": -1856,
+      "rand_pctile": 57.0
+     },
+     "S4_fixed": {
+      "trades": 87,
+      "win_pct": 46.0,
+      "net_usd": -1136,
+      "ret_pct": -2.27,
+      "pf": 0.91,
+      "max_dd_pct": -5.87,
+      "avgR_gross": -0.036,
+      "worst_day_usd": -940,
+      "avg_contracts": 2.2,
+      "rand_median": -1902,
+      "rand_pctile": 54.0
+     },
+     "per_symbol_S4_fixed": {
+      "ES": 520.0,
+      "GC": -782.0,
+      "NQ": -874.0
+     },
+     "S1_0.5pct_comp": {
+      "trades": 56,
+      "win_pct": 57.1,
+      "net_usd": 2120,
+      "ret_pct": 4.24,
+      "pf": 1.58,
+      "max_dd_pct": -2.0,
+      "avgR_gross": 0.183,
+      "worst_day_usd": -467,
+      "avg_contracts": 1.4,
+      "rand_median": -689,
+      "rand_pctile": 98.0
+     },
+     "S1_0.5pct_fixed": {
+      "trades": 58,
+      "win_pct": 53.4,
+      "net_usd": 1487,
+      "ret_pct": 2.97,
+      "pf": 1.36,
+      "max_dd_pct": -2.49,
+      "avgR_gross": 0.127,
+      "worst_day_usd": -470,
+      "avg_contracts": 1.3,
+      "rand_median": -600,
+      "rand_pctile": 96.0
+     }
+    },
+    "OOS": {
+     "range": [
+      "2026-09-16",
+      "2026-10-26"
+     ],
+     "candidates": 80,
+     "S4_comp": {
+      "trades": 57,
+      "win_pct": 40.4,
+      "net_usd": -2816,
+      "ret_pct": -5.63,
+      "pf": 0.71,
+      "max_dd_pct": -10.98,
+      "avgR_gross": -0.142,
+      "worst_day_usd": -1217,
+      "avg_contracts": 2.2,
+      "rand_median": -2204,
+      "rand_pctile": 42.0
+     },
+     "S4_fixed": {
+      "trades": 57,
+      "win_pct": 47.4,
+      "net_usd": -1093,
+      "ret_pct": -2.19,
+      "pf": 0.89,
+      "max_dd_pct": -10.47,
+      "avgR_gross": -0.053,
+      "worst_day_usd": -1217,
+      "avg_contracts": 2.5,
+      "rand_median": -2264,
+      "rand_pctile": 63.0
+     },
+     "per_symbol_S4_fixed": {
+      "ES": 1291.0,
+      "GC": -2231.0,
+      "NQ": -153.0
+     },
+     "S1_0.5pct_comp": {
+      "trades": 42,
+      "win_pct": 38.1,
+      "net_usd": -2385,
+      "ret_pct": -4.77,
+      "pf": 0.48,
+      "max_dd_pct": -5.94,
+      "avgR_gross": -0.235,
+      "worst_day_usd": -448,
+      "avg_contracts": 1.4,
+      "rand_median": -861,
+      "rand_pctile": 12.0
+     },
+     "S1_0.5pct_fixed": {
+      "trades": 43,
+      "win_pct": 37.2,
+      "net_usd": -2640,
+      "ret_pct": -5.28,
+      "pf": 0.47,
+      "max_dd_pct": -5.71,
+      "avgR_gross": -0.253,
+      "worst_day_usd": -455,
+      "avg_contracts": 1.5,
+      "rand_median": -899,
+      "rand_pctile": 8.0
+     }
+    }
+   },
+   "full": {
+    "IS": {
+     "range": [
+      "2024-06-04",
+      "2025-11-06"
+     ],
+     "candidates": 951,
+     "S4_comp": {
+      "trades": 709,
+      "win_pct": 52.9,
+      "net_usd": 110179,
+      "ret_pct": 220.36,
+      "pf": 1.53,
+      "max_dd_pct": -13.26,
+      "avgR_gross": 0.216,
+      "worst_day_usd": -3212,
+      "avg_contracts": 5.5,
+      "rand_median": -12181,
+      "rand_pctile": 100.0
+     },
+     "S4_fixed": {
+      "trades": 699,
+      "win_pct": 52.5,
+      "net_usd": 59598,
+      "ret_pct": 119.2,
+      "pf": 1.61,
+      "max_dd_pct": -9.96,
+      "avgR_gross": 0.204,
+      "worst_day_usd": -1167,
+      "avg_contracts": 3.0,
+      "rand_median": -11286,
+      "rand_pctile": 100.0
+     },
+     "per_symbol_S4_fixed": {
+      "ES": 18263.0,
+      "GC": 16684.0,
+      "NQ": 24651.0
+     },
+     "S1_0.5pct_comp": {
+      "trades": 669,
+      "win_pct": 53.4,
+      "net_usd": 37141,
+      "ret_pct": 74.28,
+      "pf": 1.61,
+      "max_dd_pct": -6.07,
+      "avgR_gross": 0.226,
+      "worst_day_usd": -728,
+      "avg_contracts": 2.0,
+      "rand_median": -3880,
+      "rand_pctile": 100.0
+     },
+     "S1_0.5pct_fixed": {
+      "trades": 610,
+      "win_pct": 53.4,
+      "net_usd": 27223,
+      "ret_pct": 54.45,
+      "pf": 1.67,
+      "max_dd_pct": -5.36,
+      "avgR_gross": 0.243,
+      "worst_day_usd": -496,
+      "avg_contracts": 1.6,
+      "rand_median": -4606,
+      "rand_pctile": 100.0
+     }
+    },
+    "OOS": {
+     "range": [
+      "2025-11-06",
+      "2026-10-26"
+     ],
+     "candidates": 634,
+     "S4_comp": {
+      "trades": 451,
+      "win_pct": 50.8,
+      "net_usd": 7564,
+      "ret_pct": 15.13,
+      "pf": 1.1,
+      "max_dd_pct": -17.79,
+      "avgR_gross": 0.052,
+      "worst_day_usd": -1582,
+      "avg_contracts": 2.3,
+      "rand_median": -6044,
+      "rand_pctile": 95.0
+     },
+     "S4_fixed": {
+      "trades": 445,
+      "win_pct": 50.3,
+      "net_usd": 10054,
+      "ret_pct": 20.11,
+      "pf": 1.16,
+      "max_dd_pct": -14.63,
+      "avgR_gross": 0.057,
+      "worst_day_usd": -1217,
+      "avg_contracts": 2.1,
+      "rand_median": -5342,
+      "rand_pctile": 100.0
+     },
+     "per_symbol_S4_fixed": {
+      "ES": 2799.0,
+      "GC": -73.0,
+      "NQ": 7328.0
+     },
+     "S1_0.5pct_comp": {
+      "trades": 304,
+      "win_pct": 51.3,
+      "net_usd": 5120,
+      "ret_pct": 10.24,
+      "pf": 1.2,
+      "max_dd_pct": -5.39,
+      "avgR_gross": 0.094,
+      "worst_day_usd": -791,
+      "avg_contracts": 1.4,
+      "rand_median": -2160,
+      "rand_pctile": 100.0
+     },
+     "S1_0.5pct_fixed": {
+      "trades": 277,
+      "win_pct": 52.0,
+      "net_usd": 4512,
+      "ret_pct": 9.02,
+      "pf": 1.22,
+      "max_dd_pct": -4.99,
+      "avgR_gross": 0.091,
+      "worst_day_usd": -470,
+      "avg_contracts": 1.3,
+      "rand_median": -2238,
+      "rand_pctile": 100.0
+     }
+    }
+   }
+  },
+  "E4": {
+   "recent200": {
+    "IS": {
+     "range": [
+      "2025-02-11",
+      "2026-02-20"
+     ],
+     "candidates": 120,
+     "S4_comp": {
+      "trades": 114,
+      "win_pct": 44.7,
+      "net_usd": 15708,
+      "ret_pct": 31.42,
+      "pf": 1.49,
+      "max_dd_pct": -7.74,
+      "avgR_gross": 0.335,
+      "worst_day_usd": -1864,
+      "avg_contracts": 3.4,
+      "rand_median": -3191,
+      "rand_pctile": 99.0
+     },
+     "S4_fixed": {
+      "trades": 113,
+      "win_pct": 45.1,
+      "net_usd": 15502,
+      "ret_pct": 31.0,
+      "pf": 1.59,
+      "max_dd_pct": -6.21,
+      "avgR_gross": 0.347,
+      "worst_day_usd": -1252,
+      "avg_contracts": 3.0,
+      "rand_median": -2538,
+      "rand_pctile": 99.0
+     },
+     "per_symbol_S4_fixed": {
+      "ES": 7595.0,
+      "GC": 4872.0,
+      "NQ": 3034.0
+     },
+     "S1_0.5pct_comp": {
+      "trades": 93,
+      "win_pct": 41.9,
+      "net_usd": 4674,
+      "ret_pct": 9.35,
+      "pf": 1.43,
+      "max_dd_pct": -2.98,
+      "avgR_gross": 0.26,
+      "worst_day_usd": -492,
+      "avg_contracts": 1.6,
+      "rand_median": -611,
+      "rand_pctile": 97.0
+     },
+     "S1_0.5pct_fixed": {
+      "trades": 92,
+      "win_pct": 41.3,
+      "net_usd": 3986,
+      "ret_pct": 7.97,
+      "pf": 1.38,
+      "max_dd_pct": -2.98,
+      "avgR_gross": 0.241,
+      "worst_day_usd": -492,
+      "avg_contracts": 1.5,
+      "rand_median": -646,
+      "rand_pctile": 94.0
+     }
+    },
+    "OOS": {
+     "range": [
+      "2026-02-20",
+      "2026-10-22"
+     ],
+     "candidates": 80,
+     "S4_comp": {
+      "trades": 77,
+      "win_pct": 36.4,
+      "net_usd": 532,
+      "ret_pct": 1.06,
+      "pf": 1.03,
+      "max_dd_pct": -9.98,
+      "avgR_gross": 0.057,
+      "worst_day_usd": -1157,
+      "avg_contracts": 2.1,
+      "rand_median": 229,
+      "rand_pctile": 53.0
+     },
+     "S4_fixed": {
+      "trades": 77,
+      "win_pct": 36.4,
+      "net_usd": 285,
+      "ret_pct": 0.57,
+      "pf": 1.01,
+      "max_dd_pct": -9.75,
+      "avgR_gross": 0.057,
+      "worst_day_usd": -1157,
+      "avg_contracts": 2.1,
+      "rand_median": 319,
+      "rand_pctile": 50.0
+     },
+     "per_symbol_S4_fixed": {
+      "ES": 396.0,
+      "GC": 924.0,
+      "NQ": -1035.0
+     },
+     "S1_0.5pct_comp": {
+      "trades": 42,
+      "win_pct": 40.5,
+      "net_usd": 1430,
+      "ret_pct": 2.86,
+      "pf": 1.29,
+      "max_dd_pct": -2.55,
+      "avgR_gross": 0.194,
+      "worst_day_usd": -426,
+      "avg_contracts": 1.3,
+      "rand_median": 210,
+      "rand_pctile": 71.0
+     },
+     "S1_0.5pct_fixed": {
+      "trades": 41,
+      "win_pct": 39.0,
+      "net_usd": 917,
+      "ret_pct": 1.83,
+      "pf": 1.19,
+      "max_dd_pct": -2.58,
+      "avgR_gross": 0.151,
+      "worst_day_usd": -426,
+      "avg_contracts": 1.3,
+      "rand_median": 255,
+      "rand_pctile": 63.0
+     }
+    }
+   },
+   "full": {
+    "IS": {
+     "range": [
+      "2024-06-18",
+      "2025-10-23"
+     ],
+     "candidates": 166,
+     "S4_comp": {
+      "trades": 159,
+      "win_pct": 38.4,
+      "net_usd": 7530,
+      "ret_pct": 15.06,
+      "pf": 1.18,
+      "max_dd_pct": -23.83,
+      "avgR_gross": 0.124,
+      "worst_day_usd": -1042,
+      "avg_contracts": 3.6,
+      "rand_median": -2312,
+      "rand_pctile": 89.0
+     },
+     "S4_fixed": {
+      "trades": 159,
+      "win_pct": 38.4,
+      "net_usd": 6819,
+      "ret_pct": 13.64,
+      "pf": 1.16,
+      "max_dd_pct": -24.48,
+      "avgR_gross": 0.124,
+      "worst_day_usd": -984,
+      "avg_contracts": 3.7,
+      "rand_median": -1060,
+      "rand_pctile": 88.0
+     },
+     "per_symbol_S4_fixed": {
+      "ES": 756.0,
+      "GC": 1311.0,
+      "NQ": 4752.0
+     },
+     "S1_0.5pct_comp": {
+      "trades": 138,
+      "win_pct": 35.5,
+      "net_usd": 906,
+      "ret_pct": 1.81,
+      "pf": 1.05,
+      "max_dd_pct": -12.75,
+      "avgR_gross": 0.046,
+      "worst_day_usd": -492,
+      "avg_contracts": 1.8,
+      "rand_median": -974,
+      "rand_pctile": 71.0
+     },
+     "S1_0.5pct_fixed": {
+      "trades": 143,
+      "win_pct": 34.3,
+      "net_usd": -467,
+      "ret_pct": -0.93,
+      "pf": 0.98,
+      "max_dd_pct": -14.25,
+      "avgR_gross": 0.009,
+      "worst_day_usd": -492,
+      "avg_contracts": 1.8,
+      "rand_median": -696,
+      "rand_pctile": 53.0
+     }
+    },
+    "OOS": {
+     "range": [
+      "2025-10-23",
+      "2026-10-22"
+     ],
+     "candidates": 112,
+     "S4_comp": {
+      "trades": 105,
+      "win_pct": 36.2,
+      "net_usd": 2569,
+      "ret_pct": 5.14,
+      "pf": 1.09,
+      "max_dd_pct": -9.49,
+      "avgR_gross": 0.06,
+      "worst_day_usd": -1252,
+      "avg_contracts": 2.3,
+      "rand_median": -2592,
+      "rand_pctile": 71.0
+     },
+     "S4_fixed": {
+      "trades": 105,
+      "win_pct": 36.2,
+      "net_usd": 1663,
+      "ret_pct": 3.33,
+      "pf": 1.06,
+      "max_dd_pct": -9.5,
+      "avgR_gross": 0.06,
+      "worst_day_usd": -1252,
+      "avg_contracts": 2.2,
+      "rand_median": -1600,
+      "rand_pctile": 62.0
+     },
+     "per_symbol_S4_fixed": {
+      "ES": 272.0,
+      "GC": 2289.0,
+      "NQ": -899.0
+     },
+     "S1_0.5pct_comp": {
+      "trades": 65,
+      "win_pct": 40.0,
+      "net_usd": 2580,
+      "ret_pct": 5.16,
+      "pf": 1.33,
+      "max_dd_pct": -2.51,
+      "avgR_gross": 0.187,
+      "worst_day_usd": -569,
+      "avg_contracts": 1.4,
+      "rand_median": -272,
+      "rand_pctile": 85.0
+     },
+     "S1_0.5pct_fixed": {
+      "trades": 60,
+      "win_pct": 38.3,
+      "net_usd": 1476,
+      "ret_pct": 2.95,
+      "pf": 1.2,
+      "max_dd_pct": -2.55,
+      "avgR_gross": 0.136,
+      "worst_day_usd": -569,
+      "avg_contracts": 1.4,
+      "rand_median": -364,
+      "rand_pctile": 77.0
+     }
+    }
+   }
+  },
+  "COMBO": {
+   "recent200": {
+    "IS": {
+     "range": [
+      "2026-07-29",
+      "2026-09-22"
+     ],
+     "candidates": 120,
+     "S4_comp": {
+      "trades": 81,
+      "win_pct": 46.9,
+      "net_usd": 2703,
+      "ret_pct": 5.41,
+      "pf": 1.2,
+      "max_dd_pct": -8.25,
+      "avgR_gross": 0.082,
+      "worst_day_usd": -1471,
+      "avg_contracts": 2.3,
+      "rand_median": 295,
+      "rand_pctile": 69.0
+     },
+     "S4_fixed": {
+      "trades": 82,
+      "win_pct": 46.3,
+      "net_usd": 3034,
+      "ret_pct": 6.07,
+      "pf": 1.23,
+      "max_dd_pct": -7.91,
+      "avgR_gross": 0.081,
+      "worst_day_usd": -1339,
+      "avg_contracts": 2.2,
+      "rand_median": 403,
+      "rand_pctile": 73.0
+     },
+     "per_symbol_S4_fixed": {
+      "ES": 522.0,
+      "GC": 3576.0,
+      "NQ": -1064.0
+     }
+    },
+    "OOS": {
+     "range": [
+      "2026-09-23",
+      "2026-10-26"
+     ],
+     "candidates": 80,
+     "S4_comp": {
+      "trades": 54,
+      "win_pct": 35.2,
+      "net_usd": -4208,
+      "ret_pct": -8.42,
+      "pf": 0.61,
+      "max_dd_pct": -14.77,
+      "avgR_gross": -0.206,
+      "worst_day_usd": -1016,
+      "avg_contracts": 2.4,
+      "rand_median": -2490,
+      "rand_pctile": 20.0
+     },
+     "S4_fixed": {
+      "trades": 54,
+      "win_pct": 40.7,
+      "net_usd": -3283,
+      "ret_pct": -6.57,
+      "pf": 0.71,
+      "max_dd_pct": -14.77,
+      "avgR_gross": -0.117,
+      "worst_day_usd": -1413,
+      "avg_contracts": 2.7,
+      "rand_median": -2012,
+      "rand_pctile": 36.0
+     },
+     "per_symbol_S4_fixed": {
+      "ES": -2908.0,
+      "GC": -1509.0,
+      "NQ": 1134.0
+     }
+    }
+   },
+   "full": {
+    "IS": {
+     "range": [
+      "2024-06-04",
+      "2025-11-05"
+     ],
+     "candidates": 1117,
+     "S4_comp": {
+      "trades": 774,
+      "win_pct": 51.2,
+      "net_usd": 125903,
+      "ret_pct": 251.81,
+      "pf": 1.51,
+      "max_dd_pct": -15.66,
+      "avgR_gross": 0.216,
+      "worst_day_usd": -3264,
+      "avg_contracts": 5.5,
+      "rand_median": -10206,
+      "rand_pctile": 100.0
+     },
+     "S4_fixed": {
+      "trades": 767,
+      "win_pct": 51.0,
+      "net_usd": 67272,
+      "ret_pct": 134.54,
+      "pf": 1.55,
+      "max_dd_pct": -12.12,
+      "avgR_gross": 0.208,
+      "worst_day_usd": -1444,
+      "avg_contracts": 3.1,
+      "rand_median": -9839,
+      "rand_pctile": 100.0
+     },
+     "per_symbol_S4_fixed": {
+      "ES": 21681.0,
+      "GC": 23312.0,
+      "NQ": 22279.0
+     }
+    },
+    "OOS": {
+     "range": [
+      "2025-11-05",
+      "2026-10-26"
+     ],
+     "candidates": 746,
+     "S4_comp": {
+      "trades": 498,
+      "win_pct": 48.0,
+      "net_usd": 10693,
+      "ret_pct": 21.39,
+      "pf": 1.12,
+      "max_dd_pct": -16.6,
+      "avgR_gross": 0.064,
+      "worst_day_usd": -1699,
+      "avg_contracts": 2.3,
+      "rand_median": -5516,
+      "rand_pctile": 92.0
+     },
+     "S4_fixed": {
+      "trades": 491,
+      "win_pct": 47.7,
+      "net_usd": 10570,
+      "ret_pct": 21.14,
+      "pf": 1.13,
+      "max_dd_pct": -13.91,
+      "avgR_gross": 0.06,
+      "worst_day_usd": -1455,
+      "avg_contracts": 2.0,
+      "rand_median": -4726,
+      "rand_pctile": 91.0
+     },
+     "per_symbol_S4_fixed": {
+      "ES": 6382.0,
+      "GC": 1558.0,
+      "NQ": 2630.0
+     }
+    }
+   }
+  }
+ },
+ "walk_forward": {
+  "E1": {
+   "2024Q2": {
+    "n": 44,
+    "avgR": 0.221,
+    "t": 1.15,
+    "S4_fixed_net": 5231
+   },
+   "2024Q3": {
+    "n": 156,
+    "avgR": 0.271,
+    "t": 2.85,
+    "S4_fixed_net": 10834
+   },
+   "2024Q4": {
+    "n": 176,
+    "avgR": 0.242,
+    "t": 2.82,
+    "S4_fixed_net": 14969
+   },
+   "2025Q1": {
+    "n": 165,
+    "avgR": 0.174,
+    "t": 2.01,
+    "S4_fixed_net": 10075
+   },
+   "2025Q2": {
+    "n": 171,
+    "avgR": 0.056,
+    "t": 0.71,
+    "S4_fixed_net": -1444
+   },
+   "2025Q3": {
+    "n": 169,
+    "avgR": 0.204,
+    "t": 2.72,
+    "S4_fixed_net": 8572
+   },
+   "2025Q4": {
+    "n": 171,
+    "avgR": 0.172,
+    "t": 1.68,
+    "S4_fixed_net": 12342
+   },
+   "2026Q1": {
+    "n": 157,
+    "avgR": 0.244,
+    "t": 3.3,
+    "S4_fixed_net": 10090
+   },
+   "2026Q2": {
+    "n": 156,
+    "avgR": 0.067,
+    "t": 0.83,
+    "S4_fixed_net": 2598
+   },
+   "2026Q3": {
+    "n": 172,
+    "avgR": -0.067,
+    "t": -1.02,
+    "S4_fixed_net": -5472
+   },
+   "2026Q4": {
+    "n": 48,
+    "avgR": -0.016,
+    "t": -0.12,
+    "S4_fixed_net": 1857
+   }
+  },
+  "E4": {
+   "2024Q2": {
+    "n": 5,
+    "avgR": -0.505,
+    "t": -0.99,
+    "S4_fixed_net": -1283
+   },
+   "2024Q3": {
+    "n": 35,
+    "avgR": -0.004,
+    "t": -0.02,
+    "S4_fixed_net": 1543
+   },
+   "2024Q4": {
+    "n": 29,
+    "avgR": -0.523,
+    "t": -2.39,
+    "S4_fixed_net": -6577
+   },
+   "2025Q1": {
+    "n": 26,
+    "avgR": 0.12,
+    "t": 0.42,
+    "S4_fixed_net": 1384
+   },
+   "2025Q2": {
+    "n": 31,
+    "avgR": 0.158,
+    "t": 0.59,
+    "S4_fixed_net": -182
+   },
+   "2025Q3": {
+    "n": 28,
+    "avgR": 0.517,
+    "t": 1.74,
+    "S4_fixed_net": 6258
+   },
+   "2025Q4": {
+    "n": 31,
+    "avgR": 0.223,
+    "t": 0.84,
+    "S4_fixed_net": 4704
+   },
+   "2026Q1": {
+    "n": 29,
+    "avgR": 0.136,
+    "t": 0.49,
+    "S4_fixed_net": 1848
+   },
+   "2026Q2": {
+    "n": 23,
+    "avgR": 0.431,
+    "t": 1.35,
+    "S4_fixed_net": 3760
+   },
+   "2026Q3": {
+    "n": 32,
+    "avgR": -0.121,
+    "t": -0.5,
+    "S4_fixed_net": -2401
+   },
+   "2026Q4": {
+    "n": 9,
+    "avgR": -0.066,
+    "t": -0.14,
+    "S4_fixed_net": -571
+   }
+  },
+  "COMBO": {
+   "2024Q2": {
+    "n": 49,
+    "avgR": 0.147,
+    "t": 0.81,
+    "S4_fixed_net": 4279
+   },
+   "2024Q3": {
+    "n": 191,
+    "avgR": 0.221,
+    "t": 2.45,
+    "S4_fixed_net": 10837
+   },
+   "2024Q4": {
+    "n": 205,
+    "avgR": 0.134,
+    "t": 1.64,
+    "S4_fixed_net": 13363
+   },
+   "2025Q1": {
+    "n": 191,
+    "avgR": 0.167,
+    "t": 1.98,
+    "S4_fixed_net": 10683
+   },
+   "2025Q2": {
+    "n": 202,
+    "avgR": 0.072,
+    "t": 0.92,
+    "S4_fixed_net": -344
+   },
+   "2025Q3": {
+    "n": 197,
+    "avgR": 0.249,
+    "t": 3.23,
+    "S4_fixed_net": 13325
+   },
+   "2025Q4": {
+    "n": 202,
+    "avgR": 0.18,
+    "t": 1.88,
+    "S4_fixed_net": 14313
+   },
+   "2026Q1": {
+    "n": 186,
+    "avgR": 0.227,
+    "t": 3.01,
+    "S4_fixed_net": 9991
+   },
+   "2026Q2": {
+    "n": 179,
+    "avgR": 0.114,
+    "t": 1.39,
+    "S4_fixed_net": 4695
+   },
+   "2026Q3": {
+    "n": 204,
+    "avgR": -0.076,
+    "t": -1.13,
+    "S4_fixed_net": -3366
+   },
+   "2026Q4": {
+    "n": 57,
+    "avgR": -0.023,
+    "t": -0.18,
+    "S4_fixed_net": 410
+   }
+  }
+ },
+ "n_rand": 100
+}

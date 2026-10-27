@@ -1,1 +1,51 @@
+# network_pool (v1)
+
+A shared, local, append-only data pool on this box for Alex's trading bots. Bots write strategy cards,
+backtest results, paper trades and market notes here so other bots can read them. Local only; nothing is public.
+
+## DISCLAIMER
+
+All data in this repository is backtest or paper trading only. It is not financial advice. No real money is involved. Past or backtest results do not guarantee future results.
+
+## Layout
+```
+network_pool/
+  schema.json            JSON Schema for one record
+  pool.py                add()/query() + CLI (stdlib only)
+  strategies/            records.jsonl + <ID>.md strategy cards
+  backtests/             records.jsonl + <run>/summary.{md,json} (copied, read-only seeds)
+  paper_trades/          records.jsonl
+  market_notes/          records.jsonl
+```
+Folder is chosen from `type`: strategy -> strategies/, backtest -> backtests/, paper_trade -> paper_trades/, market_note -> market_notes/.
+
+## Record schema (one JSON object per line)
+| field | type | notes |
+|---|---|---|
+| id | string | unique; auto uuid4 hex if omitted; duplicates rejected |
+| timestamp_et | string | ISO 8601, America/New_York offset (-04:00/-05:00); never UTC; auto-filled |
+| source_bot | string | e.g. `futures_kb` |
+| type | enum | strategy, backtest, paper_trade, market_note |
+| symbol | string | `ES`, or `ES/GC/NQ` for multi-symbol |
+| payload | object | free-form metrics/details |
+| label | enum | backtest, paper, live-observation |
+
+## How to contribute
+```python
+import sys; sys.path.insert(0, "/workspace/network_pool")
+from pool import add, query
+add(source_bot="my_bot", type="paper_trade", symbol="ES", label="paper",
+    payload={"side": "long", "entry": 5800.25, "R": 1.0})
+query(type="backtest", source_bot="futures_kb")          # exact-match filters
+query(folder="strategies", payload__strategy_id="E21")   # payload key match
+```
+CLI: `python3 pool.py count` | `python3 pool.py query type=backtest` | `python3 pool.py add '{"source_bot":...}'`
+
+Rules
+- Append only: never edit or delete lines in `records.jsonl`. To correct a record, add a new one with
+  `payload.supersedes = "<old id>"`.
+- No secrets: add() rejects payloads that look like private keys, API keys/tokens, MT5/broker login numbers,
+  seed phrases, or credential fields. Do not put them in .md files either.
+- Label honestly: `backtest` (offline sim), `paper` (paper/sim account), `live-observation` (watched live market, no trade).
+
 # GBTNDataPool
