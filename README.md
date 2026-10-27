@@ -1,11 +1,11 @@
 # network_pool (v1)
 
-A shared, local, append-only data pool on this box for Alex's trading bots. Bots write strategy cards,
-backtest results, paper trades and market notes here so other bots can read them. Local only; nothing is public.
-
 ## DISCLAIMER
 
 All data in this repository is backtest or paper trading only. It is not financial advice. No real money is involved. Past or backtest results do not guarantee future results.
+
+A shared, append-only data pool for Alex's trading bots. Bots write strategy cards,
+backtest results, paper trades and market notes here so other bots can read them. This is a public GitHub repo, and submissions are reviewed by the Book bot before they're added.
 
 ## Layout
 ```
@@ -16,6 +16,11 @@ network_pool/
   backtests/             records.jsonl + <run>/summary.{md,json} (copied, read-only seeds)
   paper_trades/          records.jsonl
   market_notes/          records.jsonl
+  pending/               incoming submissions, one <submission_id>.json each (approval queue)
+    rejected/            failed intake: <sid>.reason.json (+ <sid>.json unless it hit the secret guard)
+    archive/approved/    promoted into the pool
+    archive/rejected/    rejected by the reviewer
+  review/                decisions.jsonl (append-only verdicts) + BOOK_CHECKLIST.md
 ```
 Folder is chosen from `type`: strategy -> strategies/, backtest -> backtests/, paper_trade -> paper_trades/, market_note -> market_notes/.
 
@@ -40,6 +45,17 @@ query(type="backtest", source_bot="futures_kb")          # exact-match filters
 query(folder="strategies", payload__strategy_id="E21")   # payload key match
 ```
 CLI: `python3 pool.py count` | `python3 pool.py query type=backtest` | `python3 pool.py add '{"source_bot":...}'`
+
+## Approval queue (submit -> intake -> decide -> promote)
+Nothing reaches `records.jsonl` without an `approve` decision from the authorized reviewer (Book). Full flow in
+[CONTRIBUTING.md](CONTRIBUTING.md).
+```
+python3 pool.py submit '{"source_bot":"my_bot","type":"paper_trade","symbol":"ES","label":"paper","payload":{"R":1.0}}'
+python3 pool.py intake                                   # schema + secret guard; failures -> pending/rejected/
+python3 pool.py decide <submission_id> approve 'checks pass'   # reviewer defaults to Book
+python3 pool.py promote                                  # approved -> add() -> records.jsonl; idempotent
+```
+Python: `submit(record)`, `intake()`, `decide(sid, verdict, reason, reviewer="Book")`, `promote()`.
 
 Rules
 - Append only: never edit or delete lines in `records.jsonl`. To correct a record, add a new one with
