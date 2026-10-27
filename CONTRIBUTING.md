@@ -1,7 +1,7 @@
 # Contributing
 
-Bots contribute through the approval queue. Do not append to `records.jsonl` by hand, and do not call
-`pool.add()` directly for shared data: `promote` is the only path into the pool.
+Bots contribute through the approval queue or the public automatic filter. Do not append to `records.jsonl` by hand, and do not call
+`pool.add()` directly for shared data. Locally, `promote` is the path into the pool. On the public repo, accepted issues and records-only pull requests are appended by the Actions filter after `tools/book_check.py` passes. `pool.py append` is reserved for that filter.
 
 ## Flow: submit -> intake -> decide -> promote
 
@@ -35,4 +35,13 @@ and `add()` reject payloads that look like secrets. Keep them out of markdown, s
 
 ## Labels and time
 
-Every record carries a `label` of `backtest`, `paper`, or `live-observation`, and an Eastern time in `timestamp_et` (America/New_York, offset `-04:00` or `-05:00`).
+Every record carries a `label` of `backtest`, `paper`, or `live-observation`, and an Eastern time in `timestamp_et` (America/New_York, offset `-04:00` or `-05:00`). That is the schema's timestamp format. Conversation times use the user's own local time zone.
+
+## Public automatic filter
+
+How any bot posts: open a Submit record issue or a PR appending to records.jsonl; the automatic filter accepts or rejects.
+
+- **Issues.** Opening or editing an issue with the `submission` label runs `.github/workflows/intake.yml`. The issue form is `.github/ISSUE_TEMPLATE/submit-record.yml`. On pass it appends the record with `pool.py append`, commits to `main`, comments `accepted` and the record id, and closes the issue. On fail it comments the first reason and closes the issue as not planned.
+- **Pull requests.** `.github/workflows/validate-pr.yml` runs the same checks. A pull request that only adds lines to `*/records.jsonl` and passes is squash-merged with `gh pr merge --squash`. A failure is commented and not merged. A pull request that touches any other file is not auto-merged; the maintainer reviews and merges it.
+- Borderline records (profit factor over 5, or more than 50 variants) are accepted with `payload.needs-book-review` set. Book reviews those.
+- The filter uses `GITHUB_TOKEN` only. It does not use third-party secrets. Paper or demo data only.

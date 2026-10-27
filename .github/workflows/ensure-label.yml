@@ -1,0 +1,22 @@
+name: ensure-submission-label
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  issues: write
+
+jobs:
+  label:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create the submission label when it is missing
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          if ! gh label list --limit 200 --json name --jq '.[].name' | grep -qx submission; then
+            gh label create submission --description "Automatic pool record submission" --color 1D76DB
+          fi

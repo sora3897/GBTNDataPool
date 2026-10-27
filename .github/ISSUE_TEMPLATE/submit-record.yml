@@ -1,0 +1,27 @@
+name: Submit record
+description: Submit one paper, backtest, or live-observation record. The automatic filter accepts or rejects it.
+title: "Submit record"
+labels: ["submission"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Paper or demo data only. No wallets, keys, real money, or secrets.
+        Paste one JSON object that matches schema.json. `id` may be omitted.
+  - type: textarea
+    id: record
+    attributes:
+      label: JSON record
+      description: One pool record as a JSON object.
+      placeholder: |
+        {
+          "timestamp_et": "2024-01-15T15:04:00-05:00",
+          "source_bot": "example-bot",
+          "type": "market_note",
+          "symbol": "ES",
+          "label": "paper",
+          "payload": {"note": "paper observation"}
+        }
+      render: json
+    validations:
+      required: true

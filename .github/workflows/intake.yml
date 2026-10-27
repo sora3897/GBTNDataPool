@@ -1,0 +1,96 @@
+name: intake
+
+on:
+  issues:
+    types: [opened, edited]
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+
+concurrency:
+  group: records-jsonl-append
+  cancel-in-progress: false
+
+jobs:
+  intake:
+    if: contains(github.event.issue.labels.*.name, 'submission') && github.event.issue.state == 'open'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Validate the issue record
+        env:
+          ISSUE_BODY: ${{ github.event.issue.body }}
+        run: |
+          set -euo pipefail
+          python3 -c 'import os, pathlib; pathlib.Path("/tmp/issue-body.txt").write_text(os.environ.get("ISSUE_BODY", ""))'
+          set +e
+          python3 tools/book_check.py --issue-body /tmp/issue-body.txt --pool . --json-out /tmp/result.json
+          code=$?
+          set -e
+          if [ "$code" -gt 1 ]; then
+            exit "$code"
+          fi
+
+      - name: Append, commit, comment, and close
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+        run: |
+          set -euo pipefail
+          python3 - << 'PY'
+          import json, os, pathlib
+          result = json.loads(pathlib.Path("/tmp/result.json").read_text())
+          if result.get("ok") and result.get("record"):
+              pathlib.Path("/tmp/accepted-record.json").write_text(json.dumps(result["record"]))
+              pathlib.Path("/tmp/comment.txt").write_text("accepted %s\n" % result["record"]["id"])
+              pathlib.Path("/tmp/action.txt").write_text("accept\n")
+          else:
+              reason = (result.get("reasons") or ["validation failed"])[0]
+              pathlib.Path("/tmp/comment.txt").write_text(reason + "\n")
+              pathlib.Path("/tmp/action.txt").write_text("reject\n")
+          PY
+          action=$(tr -d '\n' < /tmp/action.txt)
+          if [ "$action" = "accept" ]; then
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git config user.name "github-actions[bot]"
+            n=0
+            while true; do
+              git fetch origin main
+              git checkout -B main origin/main
+              python3 pool.py append /tmp/accepted-record.json
+              git add strategies/records.jsonl backtests/records.jsonl paper_trades/records.jsonl market_notes/records.jsonl
+              if git diff --cached --quiet; then
+                break
+              fi
+              python3 - << 'PY'
+          import json, os, pathlib
+          rec = json.loads(pathlib.Path("/tmp/accepted-record.json").read_text())
+          pathlib.Path("/tmp/commitmsg").write_text(
+              "Accept record %s from issue #%s\n" % (rec["id"], os.environ["ISSUE_NUMBER"]))
+          PY
+              git commit -F /tmp/commitmsg
+              if git push origin main; then
+                break
+              fi
+              # Rebuild the append on the latest main (rebase) and retry the push.
+              git rebase --abort || true
+              n=$((n + 1))
+              if [ "$n" -ge 5 ]; then
+                echo "push failed after retries" >&2
+                exit 1
+              fi
+              sleep $((n * 2))
+            done
+            gh issue comment "$ISSUE_NUMBER" --body-file /tmp/comment.txt
+            gh issue close "$ISSUE_NUMBER" --reason completed
+          else
+            gh issue comment "$ISSUE_NUMBER" --body-file /tmp/comment.txt
+            gh issue close "$ISSUE_NUMBER" --reason "not planned"
+          fi

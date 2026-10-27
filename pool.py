@@ -6,6 +6,7 @@
     query(type="backtest", source_bot="futures_kb")
 
 CLI:  python3 pool.py add '<json>'    |  python3 pool.py query [key=value ...]  |  python3 pool.py count
+      python3 pool.py append <record.json>                     -> records.jsonl (automatic filter only)
 Approval queue (see CONTRIBUTING.md):
       python3 pool.py submit '<json>'                          -> pending/<submission_id>.json
       python3 pool.py intake                                   -> validate pending/, failures -> pending/rejected/
@@ -13,13 +14,25 @@ Approval queue (see CONTRIBUTING.md):
       python3 pool.py promote                                  -> Book-approved -> records.jsonl via add()
 Set NETWORK_POOL_ROOT to point at a different pool directory (used for tests).
 """
-import json, os, re, sys, uuid
+import hashlib, json, os, re, sys, uuid
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
-ROOT = Path(os.environ.get("NETWORK_POOL_ROOT", Path(__file__).resolve().parent))
 FOLDERS = {"strategy": "strategies", "backtest": "backtests", "paper_trade": "paper_trades", "market_note": "market_notes"}
 SCHEMA = json.loads((Path(__file__).resolve().parent / "schema.json").read_text())
+MAX_RECORD_BYTES = 50 * 1024
+
+def _bind_paths():
+    """Resolve pool paths on each call so NETWORK_POOL_ROOT works for tests."""
+    global ROOT, PENDING, REJECTED, ARCHIVE_OK, ARCHIVE_NO, DECISIONS
+    ROOT = Path(os.environ.get("NETWORK_POOL_ROOT", Path(__file__).resolve().parent))
+    PENDING = ROOT / "pending"
+    REJECTED = PENDING / "rejected"
+    ARCHIVE_OK = PENDING / "archive" / "approved"
+    ARCHIVE_NO = PENDING / "archive" / "rejected"
+    DECISIONS = ROOT / "review" / "decisions.jsonl"
+
+_bind_paths()
 
 def now_et():
     try:
@@ -94,9 +107,22 @@ def validate(rec):
     return errs
 
 # ---- storage --------------------------------------------------------------
-def _file(t): return ROOT / FOLDERS[t] / "records.jsonl"
+def content_hash(record):
+    """Hash record content. id, timestamp, and the review flag do not count."""
+    body = {k: v for k, v in record.items() if k not in ("id", "timestamp_et")}
+    payload = body.get("payload")
+    if isinstance(payload, dict) and "needs-book-review" in payload:
+        payload = {k: v for k, v in payload.items() if k != "needs-book-review"}
+        body["payload"] = payload
+    raw = json.dumps(body, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+    return hashlib.sha256(raw.encode("utf-8")).hexdigest()
+
+def _file(t):
+    _bind_paths()
+    return ROOT / FOLDERS[t] / "records.jsonl"
 
 def _iter(folder=None):
+    _bind_paths()
     for t, f in FOLDERS.items():
         if folder and folder not in (t, f): continue
         p = ROOT / f / "records.jsonl"
@@ -106,6 +132,7 @@ def _iter(folder=None):
 
 def add(record=None, **fields):
     """Validate, guard, de-dup and append one record. Returns the stored record. Raises ValueError."""
+    _bind_paths()
     rec = dict(record or {}); rec.update(fields)
     rec.setdefault("id", uuid.uuid4().hex)
     rec.setdefault("timestamp_et", now_et())
@@ -117,6 +144,40 @@ def add(record=None, **fields):
     p = _file(rec["type"]); p.parent.mkdir(parents=True, exist_ok=True)
     with open(p, "a") as fh:  # append only, never rewrite
         fh.write(json.dumps(rec, sort_keys=True) + "\n")
+    return rec
+
+def append_checked(record):
+    """Append one record the automatic filter already accepted.
+
+    Idempotent when the same id is already stored with the same content.
+    Refuses a second id with the same content, a reused id with different
+    content, schema failures, secrets, and records over 50 KB.
+    """
+    _bind_paths()
+    if not isinstance(record, dict):
+        raise ValueError("record must be an object")
+    rec = dict(record)
+    errs = validate(rec)
+    if errs:
+        raise ValueError("schema: " + "; ".join(errs))
+    hits = secret_hits(rec)
+    if hits:
+        raise ValueError("secret guard: record rejected (" + ", ".join(hits) + ")")
+    line = json.dumps(rec, sort_keys=True) + "\n"
+    if len(line.encode("utf-8")) > MAX_RECORD_BYTES:
+        raise ValueError("record exceeds 50 KB")
+    digest = content_hash(rec)
+    for existing in _iter():
+        if existing.get("id") == rec.get("id"):
+            if content_hash(existing) == digest:
+                return existing
+            raise ValueError(f"duplicate id: {rec['id']}")
+        if content_hash(existing) == digest:
+            raise ValueError(f"duplicate of {existing.get('id')}")
+    path = _file(rec["type"])
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with open(path, "a") as fh:  # append only, never rewrite
+        fh.write(line)
     return rec
 
 def query(folder=None, **filters):
@@ -150,6 +211,7 @@ def _write_json(path, obj):
 def _reject(path, sid, reason, keep_file=True):
     """Move a pending file to pending/rejected/ with a <sid>.reason.json sidecar. keep_file=False (secret hit)
     deletes the submission instead, so only the reason (never the offending content) is stored."""
+    _bind_paths()
     REJECTED.mkdir(parents=True, exist_ok=True)
     _write_json(REJECTED / f"{sid}.reason.json", {"submission_id": sid, "reason": reason, "rejected_at_et": now_et()})
     if keep_file: os.replace(path, REJECTED / path.name)
@@ -158,6 +220,7 @@ def _reject(path, sid, reason, keep_file=True):
 
 def submit(record=None, **fields):
     """Queue one record for review. Secrets are refused before anything is written. Returns the submission_id."""
+    _bind_paths()
     rec = dict(record or {}); rec.update(fields)
     hits = secret_hits(rec)
     if hits: raise ValueError("secret guard: submission refused, nothing written (" + ", ".join(hits) + ")")
@@ -168,10 +231,12 @@ def submit(record=None, **fields):
     return sid
 
 def _pending_files():
+    _bind_paths()
     return sorted(p for p in PENDING.glob("*.json") if p.is_file()) if PENDING.exists() else []
 
 def intake():
     """Validate every unvalidated pending/*.json with schema + secret guard. Returns {sid: 'valid' | reason}."""
+    _bind_paths()
     out = {}
     for p in _pending_files():
         sid = p.stem if SID_RE.match(p.stem) else "bad_" + uuid.uuid4().hex[:8]
@@ -193,6 +258,7 @@ def intake():
 
 def decide(submission_id, verdict, reason, reviewer=AUTHORIZED_REVIEWER):
     """Append one decision line to review/decisions.jsonl (append only)."""
+    _bind_paths()
     if verdict not in VERDICTS: raise ValueError(f"verdict must be one of {VERDICTS}")
     if not SID_RE.match(str(submission_id)) or not (PENDING / f"{submission_id}.json").is_file():
         raise ValueError(f"no such pending submission: {submission_id}")
@@ -205,6 +271,7 @@ def decide(submission_id, verdict, reason, reviewer=AUTHORIZED_REVIEWER):
 
 def _latest_decisions():
     """Latest decision per submission from the authorized reviewer only; other reviewers' lines are ignored."""
+    _bind_paths()
     latest = {}
     if DECISIONS.exists():
         for line in DECISIONS.read_text().splitlines():
@@ -216,6 +283,7 @@ def _latest_decisions():
 def promote():
     """Book-approved valid submissions -> add() -> archive/approved; Book-rejected -> archive/rejected; else untouched.
     Idempotent: a record id already in the pool is never appended again."""
+    _bind_paths()
     dec, out = _latest_decisions(), {}
     for p in _pending_files():
         try: sub = json.loads(p.read_text())
@@ -234,9 +302,13 @@ def promote():
 
 if __name__ == "__main__":
     a = sys.argv[1:]
-    if not a or a[0] not in ("add", "query", "count", "submit", "intake", "decide", "promote"): print(__doc__); sys.exit(1)
+    if not a or a[0] not in ("add", "query", "count", "submit", "intake", "decide", "promote", "append"): print(__doc__); sys.exit(1)
+    _bind_paths()
     try:
         if a[0] == "add": print(json.dumps(add(json.loads(a[1]))))
+        elif a[0] == "append":
+            if len(a) != 2: raise ValueError("usage: append <record.json>")
+            print(json.dumps(append_checked(json.loads(Path(a[1]).read_text()))))
         elif a[0] == "count": print(json.dumps(counts(), indent=1))
         elif a[0] == "submit": print(submit(json.loads(a[1])))
         elif a[0] == "intake": print(json.dumps(intake(), indent=1))
