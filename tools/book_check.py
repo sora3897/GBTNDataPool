@@ -28,7 +28,7 @@ ID_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.-]{7,127}$")
 RECORDS_PATH = re.compile(r"^[^/]+/records\.jsonl$")
 LABELS = ("backtest", "paper", "live-observation")
 OOS_KEYS = ("out_of_sample", "oos", "full_OOS")
-VARIANT_KEYS = ("variant_count", "variants_tried", "n_variants")
+VARIANT_KEYS = ("variant_count", "variants_tried", "n_variants", "n_candidates")
 PNL_KEYS = ("pnl", "total_pnl", "net_pnl")
 EMAIL_RE = re.compile(r"(?<![\w.+-])[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}(?![\w.-])")
 PHONE_RE = re.compile(
@@ -163,18 +163,38 @@ def _numeric_reasons(payload):
     return reasons, borderline
 
 
-def _variant_count(payload):
+def _walk_dicts(value):
+    if isinstance(value, dict):
+        yield value
+        for item in value.values():
+            yield from _walk_dicts(item)
+    elif isinstance(value, list):
+        for item in value:
+            yield from _walk_dicts(item)
+
+
+def _variant_count_in(obj):
+    if not isinstance(obj, dict):
+        return None
     for key in VARIANT_KEYS:
-        if key not in payload:
+        if key not in obj:
             continue
-        if key != "variant_count" and isinstance(payload[key], list):
-            return len(payload[key])
-        return _whole(payload[key])
+        if key != "variant_count" and isinstance(obj[key], list):
+            return len(obj[key])
+        return _whole(obj[key])
     return None
 
 
+def _variant_count(payload):
+    found = [count for obj in _walk_dicts(payload) if (count := _variant_count_in(obj)) is not None]
+    return max(found) if found else None
+
+
 def _has_oos(payload):
-    return any(key in payload and payload[key] not in (None, "") for key in OOS_KEYS)
+    for obj in _walk_dicts(payload):
+        if any(key in obj and obj[key] not in (None, "") for key in OOS_KEYS):
+            return True
+    return False
 
 
 def _backtest_reasons(rec):
@@ -190,17 +210,150 @@ def _backtest_reasons(rec):
     return reasons, bool(count is not None and count > 50)
 
 
-def _pii_reasons(rec):
-    text = json.dumps(rec)
+SUPPORT_EMAIL = "gbtnsupport@gmail.com"
+BUG_FIELDS = (
+    "symptom", "component", "platform", "health_check_code", "root_cause",
+    "fix_steps", "status", "fixed_in", "supersedes",
+)
+BUG_STATUSES = ("open", "fixed", "workaround")
+_PERSON_KEYS = {
+    "fullname", "firstname", "lastname", "realname", "givenname", "surname",
+    "accountholder", "accountname", "customername", "clientname", "legalname",
+    "personname", "tradername", "ownername",
+}
+_ACCOUNT_NUMBER_KEYS = {
+    "accountnumber", "accountno", "acctnumber", "acctno", "loginnumber",
+    "accountlogin", "login",
+}
+_BALANCE_KEYS = {
+    "balance", "equity", "accountbalance", "accountequity", "acctbalance",
+    "cashbalance", "accountvalue", "netliquidation", "netliq", "nlv",
+    "buyingpower", "marginbalance", "availablebalance", "settledcash",
+    "currentbalance",
+}
+_BROKER_ID_KEYS = {
+    "brokeraccountid", "brokeraccount", "accountid", "ibaccount",
+    "mt4account", "mt5account", "brokerid", "clearingaccount",
+    "brokeraccountnumber",
+}
+_NAME_VALUE = re.compile(r"^[A-Z][a-z]{1,20}(?:\s+[A-Z][a-z]{1,20}){1,2}$")
+_NAME_PHRASE = re.compile(
+    r"(?i)\b(my name is|full name|real name|account holder|account name|legal name|client name|customer name)\b"
+)
+_ACCOUNT_NUM_PHRASE = re.compile(
+    r"(?i)\b(?:account|acct|login)\s*(?:number|no\.?|num|#)\s*[:=#]?\s*[A-Za-z0-9][A-Za-z0-9-]{4,}"
+)
+_BALANCE_PHRASE = re.compile(
+    r"(?i)\b(?:account\s+(?:balance|equity|value)|net liquidation|buying power|margin balance)\b"
+)
+_BROKER_ID_PHRASE = re.compile(
+    r"(?i)\b(?:broker\s+account(?:\s+id)?|account\s+id|ib\s+account)\s*[:=#]?\s*[A-Za-z0-9][A-Za-z0-9-]{3,}"
+)
+_IB_ID = re.compile(r"\bDU\d{6,8}\b|\bU\d{7,8}\b")
+
+
+def _norm_key(key):
+    return re.sub(r"[^a-z0-9]", "", str(key).lower())
+
+
+def _dedupe(reasons):
+    found = []
+    for reason in reasons:
+        if reason not in found:
+            found.append(reason)
+    return found
+
+
+def _key_privacy_reasons(value):
     reasons = []
-    hits = pool.secret_hits(rec)
+
+    def walk(obj):
+        if isinstance(obj, dict):
+            for key, item in obj.items():
+                norm = _norm_key(key)
+                if norm in _PERSON_KEYS and isinstance(item, str) and item.strip():
+                    reasons.append("personal data: name")
+                elif norm == "name" and isinstance(item, str) and _NAME_VALUE.match(item.strip()):
+                    reasons.append("personal data: name")
+                elif norm in _ACCOUNT_NUMBER_KEYS and item not in (None, ""):
+                    reasons.append("account data: account number")
+                elif norm in _BALANCE_KEYS and item not in (None, ""):
+                    reasons.append("account data: balance or equity")
+                elif norm in _BROKER_ID_KEYS and item not in (None, ""):
+                    reasons.append("account data: broker account id")
+                walk(item)
+        elif isinstance(obj, list):
+            for item in obj:
+                walk(item)
+
+    walk(value)
+    return reasons
+
+
+def privacy_reasons(obj):
+    """Reasons for secrets, account data, or personal data. Never includes the values."""
+    if isinstance(obj, str):
+        hits = pool.secret_hits({"log": obj})
+        text = obj
+        key_reasons = []
+    else:
+        hits = pool.secret_hits(obj)
+        text = json.dumps(obj)
+        key_reasons = _key_privacy_reasons(obj)
+    reasons = []
     if hits:
         reasons.append("secret or personal data: " + ", ".join(hits))
-    if EMAIL_RE.search(text):
+    reasons.extend(key_reasons)
+    cleaned = text.replace(SUPPORT_EMAIL, "")
+    if EMAIL_RE.search(cleaned):
         reasons.append("personal data: email")
     if PHONE_RE.search(text):
         reasons.append("personal data: phone number")
+    if _NAME_PHRASE.search(text):
+        reasons.append("personal data: name")
+    if _ACCOUNT_NUM_PHRASE.search(text):
+        reasons.append("account data: account number")
+    if _BALANCE_PHRASE.search(text):
+        reasons.append("account data: balance or equity")
+    if _BROKER_ID_PHRASE.search(text) or _IB_ID.search(text):
+        reasons.append("account data: broker account id")
+    return _dedupe(reasons)
+
+
+def _bug_reasons(rec):
+    if rec.get("type") != "bug_report":
+        return []
+    payload = rec.get("payload")
+    if not isinstance(payload, dict):
+        return ["bug report payload is required"]
+    reasons = []
+    for key in BUG_FIELDS:
+        if key not in payload:
+            reasons.append(f"bug report missing {key}")
+    status = payload.get("status")
+    if "status" in payload and status not in BUG_STATUSES:
+        reasons.append("bug report status must be open, fixed, or workaround")
+    if status == "fixed" and not str(payload.get("fixed_in") or "").strip():
+        reasons.append("bug report fixed_in is required when status is fixed")
+    steps = payload.get("fix_steps")
+    if "fix_steps" in payload and not isinstance(steps, (str, list)):
+        reasons.append("bug report fix_steps must be text or a list")
+    elif isinstance(steps, list) and any(not isinstance(step, str) for step in steps):
+        reasons.append("bug report fix_steps must be text or a list")
+    for key in ("symptom", "component", "platform", "health_check_code", "root_cause", "fixed_in", "supersedes"):
+        if key in payload and payload[key] is not None and not isinstance(payload[key], str):
+            reasons.append(f"bug report {key} must be text")
+    if isinstance(payload.get("symptom"), str) and not payload["symptom"].strip():
+        reasons.append("bug report symptom is required")
+    if isinstance(payload.get("component"), str) and not payload["component"].strip():
+        reasons.append("bug report component is required")
+    if isinstance(payload.get("health_check_code"), str) and not payload["health_check_code"].strip():
+        reasons.append("bug report health_check_code is required")
     return reasons
+
+
+def _pii_reasons(rec):
+    return privacy_reasons(rec)
 
 
 def _remember(text, found):
@@ -256,6 +409,7 @@ def validate_record(record, pool_root=None, hashes=None):
         extra, flag = _backtest_reasons(rec)
         reasons.extend(extra)
         borderline = borderline or flag
+        reasons.extend(_bug_reasons(rec))
         count = _variant_count(payload)
         if count is not None and count > 50:
             borderline = True

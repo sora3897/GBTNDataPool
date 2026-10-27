@@ -226,6 +226,96 @@ class BookCheckTest(unittest.TestCase):
         self.assertEqual(bad.returncode, 1)
 
 
+    def test_account_number_balance_name_and_broker_id(self):
+        number = "100" + "200300"
+        account = self.check(record(payload={"note": "x", "account_number": number}))
+        self.assertIn("account data: account number", account["reasons"])
+        self.assertNotIn(number, " ".join(account["reasons"]))
+        balance = self.check(record(id="paperrecord11", payload={"account_balance": 1000}))
+        equity = self.check(record(id="paperrecord12", payload={"equity": 25000, "note": "x"}))
+        self.assertIn("account data: balance or equity", balance["reasons"])
+        self.assertIn("account data: balance or equity", equity["reasons"])
+        self.assertNotIn("1000", " ".join(balance["reasons"]))
+        person = " ".join(["Jane", "Doe"])
+        named = self.check(record(id="paperrecord13", payload={"full_name": person}))
+        self.assertIn("personal data: name", named["reasons"])
+        self.assertNotIn(person, " ".join(named["reasons"]))
+        broker = "DU" + "1234567"
+        ident = self.check(record(id="paperrecord14", payload={"broker_account_id": broker}))
+        self.assertIn("account data: broker account id", ident["reasons"])
+        self.assertNotIn(broker, " ".join(ident["reasons"]))
+        phrase = self.check(record(id="paperrecord15", payload={"note": "account number " + number}))
+        self.assertIn("account data: account number", phrase["reasons"])
+        self.assertNotIn(number, " ".join(phrase["reasons"]))
+
+    def test_strategy_name_and_paper_bank_are_not_account_data(self):
+        named = self.check(record(payload={"name": "E10 + wide-range skip", "note": "x"}))
+        self.assertTrue(named["ok"], named["reasons"])
+        banks = self.check(record(id="paperrecord16", payload={
+            "trades": [{"pnl": 1.5}, {"pnl": -0.5}], "pnl": 1, "start_bank": 100, "end_bank": 101,
+        }))
+        self.assertTrue(banks["ok"], banks["reasons"])
+
+    def test_nested_out_of_sample_counts(self):
+        result = self.check(record(
+            id="backtestnested01", type="backtest", label="backtest",
+            payload={"results": {"full_OOS": {"pnl": 1.2}}, "n_candidates": 8},
+        ))
+        self.assertTrue(result["ok"], result["reasons"])
+        self.assertFalse(result["needs_book_review"])
+
+    def test_bug_report_fields_and_privacy(self):
+        good = self.check(record(
+            id="bugrecord0001", type="bug_report", symbol="DESK",
+            payload={
+                "symptom": "pending queue sat for two days",
+                "component": "server",
+                "platform": "undecided",
+                "health_check_code": "pending-queue",
+                "root_cause": "intake was not run",
+                "fix_steps": ["Run intake", "Ask Book to decide"],
+                "status": "fixed",
+                "fixed_in": "abc1234",
+                "supersedes": "",
+            },
+        ))
+        self.assertTrue(good["ok"], good["reasons"])
+        missing = self.check(record(id="bugrecord0002", type="bug_report", payload={"symptom": "x"}))
+        self.assertFalse(missing["ok"])
+        self.assertTrue(any(reason.startswith("bug report missing ") for reason in missing["reasons"]))
+        unfixed = self.check(record(
+            id="bugrecord0003", type="bug_report", symbol="DESK",
+            payload={
+                "symptom": "desk stayed running",
+                "component": "coordinator",
+                "platform": "undecided",
+                "health_check_code": "stopped-desk",
+                "root_cause": "stop was ignored",
+                "fix_steps": ["Halt every routine"],
+                "status": "fixed",
+                "fixed_in": "",
+                "supersedes": "",
+            },
+        ))
+        self.assertIn("bug report fixed_in is required when status is fixed", unfixed["reasons"])
+        leaked = self.check(record(
+            id="bugrecord0004", type="bug_report", symbol="DESK",
+            payload={
+                "symptom": "login file was noisy",
+                "component": "server",
+                "platform": "mt5",
+                "health_check_code": "demo-login",
+                "root_cause": "status file had extra fields",
+                "fix_steps": ["Strip the file"],
+                "status": "open",
+                "fixed_in": "",
+                "supersedes": "",
+                "account_balance": 50,
+            },
+        ))
+        self.assertIn("account data: balance or equity", leaked["reasons"])
+
+
 class PoolAppendTest(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
@@ -255,6 +345,34 @@ class PoolAppendTest(unittest.TestCase):
         other["id"] = "differentid09"
         with self.assertRaises(ValueError):
             pool.append_checked(other)
+
+    def test_bug_report_appends_to_bugs(self):
+        rec = record(
+            id="bugrecord0009", type="bug_report", symbol="DESK", label="paper",
+            payload={
+                "symptom": "workflow lint missed a name",
+                "component": "pipeline",
+                "platform": "undecided",
+                "health_check_code": "workflows",
+                "root_cause": "the file had no name",
+                "fix_steps": ["Add a name"],
+                "status": "fixed",
+                "fixed_in": "abc1234",
+                "supersedes": "",
+            },
+        )
+        stored = pool.append_checked(rec)
+        path = self.root / "bugs" / "records.jsonl"
+        self.assertTrue(path.is_file())
+        self.assertEqual(json.loads(path.read_text(encoding="utf-8"))["id"], stored["id"])
+
+    def test_submit_refuses_account_number(self):
+        number = "100" + "200301"
+        with self.assertRaises(ValueError) as ctx:
+            pool.submit(record(payload={"account_number": number}))
+        self.assertNotIn(number, str(ctx.exception))
+        pending = self.root / "pending"
+        self.assertFalse(pending.exists() and any(pending.glob("*.json")))
 
     def test_local_queue_still_submits(self):
         sid = pool.submit(record())

@@ -4,8 +4,20 @@
 
 All data in this repository is backtest or paper trading only. It is not financial advice. No real money is involved. Past or backtest results do not guarantee future results.
 
-A shared, append-only data pool for Alex's trading bots. Bots write strategy cards,
-backtest results, paper trades and market notes here so other bots can read them. This is a public GitHub repo. Record posts are accepted or rejected by an automatic checklist. Book maintains that checklist and reviews rows flagged `needs-book-review`.
+A shared, append-only data pool for a paper-trading desk. Bots write strategy cards,
+backtest results, paper trades, market notes, and bug fixes here so other desks can read them. This is a public GitHub repo. Record posts are accepted or rejected by an automatic checklist. Book maintains that checklist and reviews rows flagged `needs-book-review`.
+
+## DATA & PRIVACY
+
+We only collect trading data (instrument, side, size, entry and exit prices and times, P&L, strategy label). We never collect account data: no login, password, account number, balance, personal info, or broker identity. Trading data shared to the public pool is anonymized, checked by the automatic filter, and labeled paper.
+
+Show that note to the user before any login help. The same words are in [SETUP.md](SETUP.md).
+
+## Data sharing
+
+`config/user_settings.json` holds `share_data` and `share_bugs`. During setup the user answers, with neither choice pre-selected, whether to share anonymized trading data and bug fixes. Both switches take that answer. The menu item Data sharing: ON/OFF toggles them later.
+
+When the switch is off, nothing is submitted upstream. The local pool still works, and Server and the health check skip upstream submissions. When it is on, posts use the filtered intake below, and the user still OK's the first upstream submission. The file in this repo starts with both switches off.
 
 ## Rebuild the team
 
@@ -13,7 +25,7 @@ Role prompts and setup steps are in [SETUP.md](SETUP.md). Say `set up from SETUP
 
 ## How any bot posts
 
-Open a Submit record issue or a PR appending to records.jsonl; the automatic filter accepts or rejects.
+When data sharing is on, and the user has OK'd the first upstream submission, open a Submit record issue, a Submit bug fix issue, or a PR appending to records.jsonl. The automatic filter accepts or rejects. When sharing is off, the local pool is the end of the path.
 
 ## Public contribution flow
 
@@ -21,7 +33,7 @@ Paper or demo only. No secrets, wallets, keys, or real money.
 
 1. **Local submit.** A teammate submits a record on the local pool (`pool.py submit`).
 2. **Book review.** Book runs the checklist. Rejected data never leaves the local pool. Book maintains `tools/book_check.py` and reviews records flagged `needs-book-review`.
-3. **serverbot posts.** With the user's own GitHub (forking the repo if it lacks write access), serverbot opens a Submit record issue or a pull request that only appends to `*/records.jsonl`. It never pushes directly and never merges on its own.
+3. **Server posts.** Only when data sharing is on, and only after the user has OK'd the first upstream submission. With the user's own GitHub (forking the repo if it lacks write access), Server opens a Submit record issue, a Submit bug fix issue, or a pull request that only appends to `*/records.jsonl`. It never pushes directly and never merges on its own.
 4. **Automatic filter.** A passing issue is appended to `main`. A passing records-only pull request is squash-merged. Anything else is rejected or left for review.
 5. **Maintainer.** The upstream maintainer reviews and merges pull requests that touch any file other than `*/records.jsonl`.
 
@@ -36,13 +48,15 @@ network_pool/
   backtests/             records.jsonl + <run>/summary.{md,json} (copied, read-only seeds)
   paper_trades/          records.jsonl
   market_notes/          records.jsonl
+  bugs/                  records.jsonl (type bug_report: symptom, fix, and status)
+  config/user_settings.json   share_data, share_bugs, upstream_confirmed
   pending/               incoming submissions, one <submission_id>.json each (approval queue)
     rejected/            failed intake: <sid>.reason.json (+ <sid>.json unless it hit the secret guard)
     archive/approved/    promoted into the pool
     archive/rejected/    rejected by the reviewer
   review/                decisions.jsonl (append-only verdicts) + BOOK_CHECKLIST.md
 ```
-Folder is chosen from `type`: strategy -> strategies/, backtest -> backtests/, paper_trade -> paper_trades/, market_note -> market_notes/.
+Folder is chosen from `type`: strategy -> strategies/, backtest -> backtests/, paper_trade -> paper_trades/, market_note -> market_notes/, bug_report -> bugs/.
 
 ## Record schema (one JSON object per line)
 | field | type | notes |
@@ -50,7 +64,7 @@ Folder is chosen from `type`: strategy -> strategies/, backtest -> backtests/, p
 | id | string | unique; auto uuid4 hex if omitted; duplicates rejected |
 | timestamp_et | string | ISO 8601, America/New_York offset (-04:00/-05:00); never UTC; auto-filled |
 | source_bot | string | e.g. `futures_kb` |
-| type | enum | strategy, backtest, paper_trade, market_note |
+| type | enum | strategy, backtest, paper_trade, market_note, bug_report |
 | symbol | string | `ES`, or `ES/GC/NQ` for multi-symbol |
 | payload | object | free-form metrics/details |
 | label | enum | backtest, paper, live-observation |
@@ -83,4 +97,12 @@ Rules
 - No secrets: add() rejects payloads that look like private keys, API keys/tokens, MT5/broker login numbers,
   seed phrases, or credential fields. Do not put them in .md files either.
 - Label honestly: `backtest` (offline sim), `paper` (paper/sim account), `live-observation` (watched live market, no trade).
-- `tools/book_check.py` is Book's checklist as code. It checks schema, label, Eastern `timestamp_et`, `source_bot`, numeric sanity, backtest out-of-sample results and variant count, content-hash duplicates, secrets and personal data, an append-only diff, and a 50 KB cap. Profit factor over 5, or more than 50 variants, is accepted with `payload.needs-book-review`.
+- `tools/book_check.py` is Book's checklist as code. It checks schema, label, Eastern `timestamp_et`, `source_bot`, numeric sanity, backtest out-of-sample results and variant count, content-hash duplicates, secrets and personal data, account numbers, balances or equity tied to an account, names, broker account ids, bug-record fields, an append-only diff, and a 50 KB cap. Profit factor over 5, or more than 50 variants, is accepted with `payload.needs-book-review`.
+
+## Health & bug fixes
+
+`python3 tools/health_check.py --mode desk` is the one-off check the coordinator runs from the menu. It reports pass, warn, or fail in plain English, suggests a fix, and can apply a safe fix only after the user says yes. It looks in `bugs/` for a known fix before asking them to file anything.
+
+`.github/workflows/health.yml` runs on push, pull request, workflow dispatch, and a daily schedule. It runs the unit tests, validates every `records.jsonl` line, checks duplicate ids, scans for secrets and personal data, and lints the workflows. A failure opens or updates one issue labeled `health`. A green run closes it, and appends a `bug_report` when that issue described a fix.
+
+Bug reports for the dev use `.github/ISSUE_TEMPLATE/bug-report.yml`. Bug fixes for the pool use `.github/ISSUE_TEMPLATE/bug-fix.yml`. Do not paste credentials or account data. gbtnsupport@gmail.com is an alternative. The user reviews a draft before it is filed, and a pool submission still needs their OK and the sharing switch.

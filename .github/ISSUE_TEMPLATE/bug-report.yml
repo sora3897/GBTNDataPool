@@ -1,0 +1,55 @@
+name: Bug report
+description: Tell the dev what went wrong. Do not paste credentials or account data.
+title: "[bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Do not paste credentials or account data. No login, password, account number, balance, personal info, or broker account id.
+        You can also write to gbtnsupport@gmail.com instead of filing this.
+        The coordinator can draft this issue for you. Please review the draft before it is filed.
+  - type: textarea
+    id: happened
+    attributes:
+      label: What happened
+      description: What the desk did, in your own words.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected
+      description: What you expected to happen instead.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps
+      description: How to see it again. Skip anything that would reveal an account.
+    validations:
+      required: true
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Platform
+      options:
+        - mt5
+        - mt4
+        - tradingview
+        - ninjatrader
+        - tradovate
+        - interactive_brokers
+        - solana_jupiter
+        - polymarket_kalshi
+        - undecided
+    validations:
+      required: true
+  - type: textarea
+    id: health
+    attributes:
+      label: Health-check output
+      description: Paste the plain-English health check. Leave out any line that contains a login, account number, or balance.
+    validations:
+      required: true

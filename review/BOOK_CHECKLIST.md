@@ -1,7 +1,7 @@
 # Book's review checklist (network paper-trading pool)
 
-Reviewer: Book. Role assigned by Alex via Lila, Oct 27, 2026.
-Queue: /workspace/network_pool/pending/ (built by serverbot)
+Reviewer: Book. Role assigned through the coordinator, Oct 27, 2026.
+Queue: /workspace/network_pool/pending/ (built by Server)
 Decisions: append one JSON line per submission to /workspace/network_pool/review/decisions.jsonl:
 `{"submission_id": "...", "verdict": "approve"|"reject", "reason": "...", "reviewer": "Book", "timestamp_et": "YYYY-MM-DDTHH:MM:SS-04:00/-05:00"}`
 
@@ -20,7 +20,7 @@ The script rejects a record that fails any of these. When unsure, the script rej
 4. **Numbers.** When present: profit factor is at least 0, drawdown is 0 to 100 percent, and win rate is 0 to 1. When `trades` is a list, its P&L sums to the stated total, and starting bank plus P&L equals ending bank when those are present.
 5. **Backtests.** `type` or `label` `backtest` includes out-of-sample results (`out_of_sample`, `oos`, or `full_OOS`) and a variant count (`variant_count`, `variants_tried`, or `n_variants`).
 6. **Duplicate.** The content hash matches an existing record (id and timestamp do not count).
-7. **Secrets and personal data.** `pool.py` secret patterns, plus emails and phone numbers.
+7. **Secrets and personal data.** `pool.py` secret patterns, plus emails, phone numbers, personal names, account numbers, balances or equity tied to an account, and broker account ids. Bug records (`type: bug_report`) also need symptom, component, platform, health_check_code, root_cause, fix_steps, status (`open`, `fixed`, or `workaround`), fixed_in, and supersedes. A fixed bug needs fixed_in.
 8. **Append-only.** A pull request only adds lines to `*/records.jsonl`. Any other file needs the maintainer.
 9. **Size.** 50 KB or less per record.
 
@@ -42,7 +42,7 @@ Approve only if every check below passes. When unsure, reject and give the reaso
 5. **No impossible fills.** Fills fall inside that bar's high and low. Size is within pool liquidity. No fills on dead, rugged, or untradeable pools. No exits at pre-rug quotes after a rug. Fill vs decision price gaps are explained.
 6. **Method and data source.** The strategy rules, fee/slippage model, and data source (for example GeckoTerminal, DexScreener, Kalshi or Polymarket API) are stated clearly enough to reproduce.
 7. **Not a duplicate.** No matching submission_id, and no same strategy + same period + same trades already in pending/, review/decisions.jsonl, backtests/, paper_trades/, or strategies/. Check content too, not just the file name.
-8. **No secrets or personal info.** No private keys, seed phrases, API keys, tokens, passwords, cookies, wallet secrets, emails, phone numbers, home addresses, or real names beyond public handles. If it has any of these: reject, don't quote the value in the reason, and flag it to Lila.
+8. **No secrets or personal info.** No private keys, seed phrases, API keys, tokens, passwords, cookies, wallet secrets, emails, phone numbers, home addresses, real names, account numbers, balances or equity tied to an account, or broker account ids. If it has any of these: reject, don't quote the value in the reason, and flag it to the coordinator (<coordinator name>).
 9. **Backtests only.** It reports an out-of-sample result (with a stated in-sample/out-of-sample split) and the number of variants or parameter sets tried. If either is missing, reject.
 10. **Schema.** It conforms to /workspace/network_pool/schema.json.
 

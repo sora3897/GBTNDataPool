@@ -108,7 +108,7 @@ jobs:
             git config user.name "github-actions[bot]"
             n=0
             while true; do
-              git add strategies/records.jsonl backtests/records.jsonl paper_trades/records.jsonl market_notes/records.jsonl
+              git add strategies/records.jsonl backtests/records.jsonl paper_trades/records.jsonl market_notes/records.jsonl bugs/records.jsonl
               if ! git diff --cached --quiet; then
                 git commit -F /tmp/accepted.txt
                 if git push origin main; then

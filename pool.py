@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Shared local data pool for Alex's trading bots. Stdlib only. Append-only JSON Lines.
+"""Shared local data pool for a paper-trading desk. Stdlib only. Append-only JSON Lines.
 
     from pool import add, query
     add(source_bot="futures_kb", type="backtest", symbol="ES", label="backtest", payload={...})
@@ -18,7 +18,13 @@ import hashlib, json, os, re, sys, uuid
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
-FOLDERS = {"strategy": "strategies", "backtest": "backtests", "paper_trade": "paper_trades", "market_note": "market_notes"}
+FOLDERS = {
+    "strategy": "strategies",
+    "backtest": "backtests",
+    "paper_trade": "paper_trades",
+    "market_note": "market_notes",
+    "bug_report": "bugs",
+}
 SCHEMA = json.loads((Path(__file__).resolve().parent / "schema.json").read_text())
 MAX_RECORD_BYTES = 50 * 1024
 
@@ -87,6 +93,11 @@ def secret_hits(obj):
     return sorted(set(find_secrets(json.dumps(obj)) + [f"secret-looking key '{k}'" for k in _secret_keys(obj)]
                       + ["possible seed phrase" for s in _strings(obj) if _seed_like(s)]))
 
+def privacy_block(obj):
+    """Book's secret, account-data, and personal-data reasons. Empty when obj is safe to store."""
+    from tools.book_check import privacy_reasons
+    return privacy_reasons(obj)
+
 # ---- validation (minimal JSON Schema subset for schema.json) -------------
 _T = {"string": str, "object": dict, "array": list, "number": (int, float), "integer": int, "boolean": bool}
 
@@ -138,8 +149,8 @@ def add(record=None, **fields):
     rec.setdefault("timestamp_et", now_et())
     errs = validate(rec)
     if errs: raise ValueError("schema: " + "; ".join(errs))
-    hits = secret_hits(rec["payload"])
-    if hits: raise ValueError("secret guard: payload rejected (" + ", ".join(hits) + ")")
+    blocked = privacy_block(rec)
+    if blocked: raise ValueError("secret guard: payload rejected (" + "; ".join(blocked) + ")")
     if any(r.get("id") == rec["id"] for r in _iter()): raise ValueError(f"duplicate id: {rec['id']}")
     p = _file(rec["type"]); p.parent.mkdir(parents=True, exist_ok=True)
     with open(p, "a") as fh:  # append only, never rewrite
@@ -160,9 +171,9 @@ def append_checked(record):
     errs = validate(rec)
     if errs:
         raise ValueError("schema: " + "; ".join(errs))
-    hits = secret_hits(rec)
-    if hits:
-        raise ValueError("secret guard: record rejected (" + ", ".join(hits) + ")")
+    blocked = privacy_block(rec)
+    if blocked:
+        raise ValueError("secret guard: record rejected (" + "; ".join(blocked) + ")")
     line = json.dumps(rec, sort_keys=True) + "\n"
     if len(line.encode("utf-8")) > MAX_RECORD_BYTES:
         raise ValueError("record exceeds 50 KB")
@@ -222,8 +233,8 @@ def submit(record=None, **fields):
     """Queue one record for review. Secrets are refused before anything is written. Returns the submission_id."""
     _bind_paths()
     rec = dict(record or {}); rec.update(fields)
-    hits = secret_hits(rec)
-    if hits: raise ValueError("secret guard: submission refused, nothing written (" + ", ".join(hits) + ")")
+    blocked = privacy_block(rec)
+    if blocked: raise ValueError("secret guard: submission refused, nothing written (" + "; ".join(blocked) + ")")
     rec.setdefault("id", uuid.uuid4().hex)  # fixed now so promote can never double-append
     rec.setdefault("timestamp_et", now_et())
     sid = "sub_" + re.sub(r"\D", "", rec["timestamp_et"][:19]) + "_" + uuid.uuid4().hex[:8]
@@ -247,8 +258,8 @@ def intake():
         if not isinstance(sub, dict) or not isinstance(sub.get("record"), dict):
             out[sid] = _reject(p, sid, "submission must be an object with a 'record' object"); continue
         if sub.get("status") == "valid": continue
-        hits = secret_hits(sub)
-        if hits: out[sid] = _reject(p, sid, "secret guard: " + ", ".join(hits), keep_file=False); continue
+        blocked = privacy_block(sub)
+        if blocked: out[sid] = _reject(p, sid, "secret guard: " + "; ".join(blocked), keep_file=False); continue
         if sub.get("submission_id") != sid: out[sid] = _reject(p, sid, "submission_id does not match file name"); continue
         errs = validate(sub["record"])
         if errs: out[sid] = _reject(p, sid, "schema: " + "; ".join(errs)); continue
