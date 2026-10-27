@@ -6,6 +6,11 @@
     query(type="backtest", source_bot="futures_kb")
 
 CLI:  python3 pool.py add '<json>'    |  python3 pool.py query [key=value ...]  |  python3 pool.py count
+Approval queue (see CONTRIBUTING.md):
+      python3 pool.py submit '<json>'                          -> pending/<submission_id>.json
+      python3 pool.py intake                                   -> validate pending/, failures -> pending/rejected/
+      python3 pool.py decide <submission_id> approve|reject '<reason>' [--reviewer Book]
+      python3 pool.py promote                                  -> Book-approved -> records.jsonl via add()
 Set NETWORK_POOL_ROOT to point at a different pool directory (used for tests).
 """
 import json, os, re, sys, uuid
@@ -64,6 +69,11 @@ def _secret_keys(obj):
         return [x for v in obj for x in _secret_keys(v)]
     return []
 
+def secret_hits(obj):
+    """Names of secret patterns found anywhere in obj (never the matched values)."""
+    return sorted(set(find_secrets(json.dumps(obj)) + [f"secret-looking key '{k}'" for k in _secret_keys(obj)]
+                      + ["possible seed phrase" for s in _strings(obj) if _seed_like(s)]))
+
 # ---- validation (minimal JSON Schema subset for schema.json) -------------
 _T = {"string": str, "object": dict, "array": list, "number": (int, float), "integer": int, "boolean": bool}
 
@@ -101,9 +111,8 @@ def add(record=None, **fields):
     rec.setdefault("timestamp_et", now_et())
     errs = validate(rec)
     if errs: raise ValueError("schema: " + "; ".join(errs))
-    hits = find_secrets(json.dumps(rec["payload"])) + [f"secret-looking key '{k}'" for k in _secret_keys(rec["payload"])] \
-        + ["possible seed phrase" for s in _strings(rec["payload"]) if _seed_like(s)]
-    if hits: raise ValueError("secret guard: payload rejected (" + ", ".join(sorted(set(hits))) + ")")
+    hits = secret_hits(rec["payload"])
+    if hits: raise ValueError("secret guard: payload rejected (" + ", ".join(hits) + ")")
     if any(r.get("id") == rec["id"] for r in _iter()): raise ValueError(f"duplicate id: {rec['id']}")
     p = _file(rec["type"]); p.parent.mkdir(parents=True, exist_ok=True)
     with open(p, "a") as fh:  # append only, never rewrite
@@ -124,14 +133,122 @@ def query(folder=None, **filters):
 def counts():
     return {f: len(query(folder=f)) for f in FOLDERS.values()}
 
+# ---- approval queue: submit -> intake -> decide -> promote ----------------
+AUTHORIZED_REVIEWER = "Book"
+VERDICTS = ("approve", "reject")
+SID_RE = re.compile(r"^[A-Za-z0-9_-]{1,80}$")
+PENDING = ROOT / "pending"
+REJECTED = PENDING / "rejected"
+ARCHIVE_OK = PENDING / "archive" / "approved"
+ARCHIVE_NO = PENDING / "archive" / "rejected"
+DECISIONS = ROOT / "review" / "decisions.jsonl"
+
+def _write_json(path, obj):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_suffix(".tmp"); tmp.write_text(json.dumps(obj, indent=1, sort_keys=True) + "\n"); os.replace(tmp, path)
+
+def _reject(path, sid, reason, keep_file=True):
+    """Move a pending file to pending/rejected/ with a <sid>.reason.json sidecar. keep_file=False (secret hit)
+    deletes the submission instead, so only the reason (never the offending content) is stored."""
+    REJECTED.mkdir(parents=True, exist_ok=True)
+    _write_json(REJECTED / f"{sid}.reason.json", {"submission_id": sid, "reason": reason, "rejected_at_et": now_et()})
+    if keep_file: os.replace(path, REJECTED / path.name)
+    else: path.unlink()
+    return reason
+
+def submit(record=None, **fields):
+    """Queue one record for review. Secrets are refused before anything is written. Returns the submission_id."""
+    rec = dict(record or {}); rec.update(fields)
+    hits = secret_hits(rec)
+    if hits: raise ValueError("secret guard: submission refused, nothing written (" + ", ".join(hits) + ")")
+    rec.setdefault("id", uuid.uuid4().hex)  # fixed now so promote can never double-append
+    rec.setdefault("timestamp_et", now_et())
+    sid = "sub_" + re.sub(r"\D", "", rec["timestamp_et"][:19]) + "_" + uuid.uuid4().hex[:8]
+    _write_json(PENDING / f"{sid}.json", {"submission_id": sid, "submitted_at_et": now_et(), "status": "submitted", "record": rec})
+    return sid
+
+def _pending_files():
+    return sorted(p for p in PENDING.glob("*.json") if p.is_file()) if PENDING.exists() else []
+
+def intake():
+    """Validate every unvalidated pending/*.json with schema + secret guard. Returns {sid: 'valid' | reason}."""
+    out = {}
+    for p in _pending_files():
+        sid = p.stem if SID_RE.match(p.stem) else "bad_" + uuid.uuid4().hex[:8]
+        raw = p.read_text(errors="replace")
+        if find_secrets(raw): out[sid] = _reject(p, sid, "secret guard: " + ", ".join(find_secrets(raw)), keep_file=False); continue
+        try: sub = json.loads(raw)
+        except ValueError: out[sid] = _reject(p, sid, "invalid JSON"); continue
+        if not isinstance(sub, dict) or not isinstance(sub.get("record"), dict):
+            out[sid] = _reject(p, sid, "submission must be an object with a 'record' object"); continue
+        if sub.get("status") == "valid": continue
+        hits = secret_hits(sub)
+        if hits: out[sid] = _reject(p, sid, "secret guard: " + ", ".join(hits), keep_file=False); continue
+        if sub.get("submission_id") != sid: out[sid] = _reject(p, sid, "submission_id does not match file name"); continue
+        errs = validate(sub["record"])
+        if errs: out[sid] = _reject(p, sid, "schema: " + "; ".join(errs)); continue
+        if any(r.get("id") == sub["record"]["id"] for r in _iter()): out[sid] = _reject(p, sid, f"duplicate id: {sub['record']['id']}"); continue
+        sub.update(status="valid", validated_at_et=now_et()); _write_json(p, sub); out[sid] = "valid"
+    return out
+
+def decide(submission_id, verdict, reason, reviewer=AUTHORIZED_REVIEWER):
+    """Append one decision line to review/decisions.jsonl (append only)."""
+    if verdict not in VERDICTS: raise ValueError(f"verdict must be one of {VERDICTS}")
+    if not SID_RE.match(str(submission_id)) or not (PENDING / f"{submission_id}.json").is_file():
+        raise ValueError(f"no such pending submission: {submission_id}")
+    if not str(reason).strip(): raise ValueError("reason is required")
+    if find_secrets(str(reason)): raise ValueError("secret guard: reason rejected")
+    line = {"submission_id": submission_id, "verdict": verdict, "reason": str(reason), "reviewer": str(reviewer), "timestamp_et": now_et()}
+    DECISIONS.parent.mkdir(parents=True, exist_ok=True)
+    with open(DECISIONS, "a") as fh: fh.write(json.dumps(line, sort_keys=True) + "\n")
+    return line
+
+def _latest_decisions():
+    """Latest decision per submission from the authorized reviewer only; other reviewers' lines are ignored."""
+    latest = {}
+    if DECISIONS.exists():
+        for line in DECISIONS.read_text().splitlines():
+            if not line.strip(): continue
+            d = json.loads(line)
+            if d.get("reviewer") == AUTHORIZED_REVIEWER and d.get("verdict") in VERDICTS: latest[d.get("submission_id")] = d
+    return latest
+
+def promote():
+    """Book-approved valid submissions -> add() -> archive/approved; Book-rejected -> archive/rejected; else untouched.
+    Idempotent: a record id already in the pool is never appended again."""
+    dec, out = _latest_decisions(), {}
+    for p in _pending_files():
+        try: sub = json.loads(p.read_text())
+        except ValueError: continue
+        sid = sub.get("submission_id")
+        if sub.get("status") != "valid" or sid != p.stem or sid not in dec: continue  # run intake / await decision
+        if dec[sid]["verdict"] == "reject":
+            ARCHIVE_NO.mkdir(parents=True, exist_ok=True); os.replace(p, ARCHIVE_NO / p.name); out[sid] = "archived-rejected"; continue
+        rec = sub["record"]
+        if any(r.get("id") == rec.get("id") for r in _iter()): out[sid] = "already-in-pool"
+        else:
+            try: add(rec); out[sid] = "promoted"
+            except ValueError as e: out[sid] = _reject(p, sid, f"promote failed: {e}"); continue
+        ARCHIVE_OK.mkdir(parents=True, exist_ok=True); os.replace(p, ARCHIVE_OK / p.name)
+    return out
+
 if __name__ == "__main__":
     a = sys.argv[1:]
-    if not a or a[0] not in ("add", "query", "count"): print(__doc__); sys.exit(1)
+    if not a or a[0] not in ("add", "query", "count", "submit", "intake", "decide", "promote"): print(__doc__); sys.exit(1)
     try:
         if a[0] == "add": print(json.dumps(add(json.loads(a[1]))))
         elif a[0] == "count": print(json.dumps(counts(), indent=1))
+        elif a[0] == "submit": print(submit(json.loads(a[1])))
+        elif a[0] == "intake": print(json.dumps(intake(), indent=1))
+        elif a[0] == "promote": print(json.dumps(promote(), indent=1))
+        elif a[0] == "decide":
+            rest = a[1:]; reviewer = AUTHORIZED_REVIEWER
+            if "--reviewer" in rest:
+                i = rest.index("--reviewer"); reviewer = rest[i + 1]; del rest[i:i + 2]
+            if len(rest) != 3: raise ValueError("usage: decide <submission_id> approve|reject '<reason>' [--reviewer Book]")
+            print(json.dumps(decide(rest[0], rest[1], rest[2], reviewer)))
         else:
             kw = dict(x.split("=", 1) for x in a[1:])
             for r in query(**kw): print(json.dumps(r))
-    except ValueError as e:
+    except (ValueError, IndexError) as e:
         print(f"REJECTED: {e}", file=sys.stderr); sys.exit(2)
