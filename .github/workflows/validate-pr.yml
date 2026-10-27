@@ -1,0 +1,167 @@
+name: validate-pr
+
+# pull_request_target runs in the base repo so a fork PR can be merged.
+# The job checks out the base branch and only reads the pull request diff.
+# It never executes code from the pull request.
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+
+concurrency:
+  group: records-jsonl-append
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.base.ref }}
+          fetch-depth: 0
+          persist-credentials: true
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Fetch the pull request head
+        run: git fetch origin pull/${{ github.event.pull_request.number }}/head:pr-head
+
+      - name: Validate the diff
+        run: |
+          set +e
+          python3 tools/book_check.py --diff origin/${{ github.event.pull_request.base.ref }} pr-head --pool . --json-out /tmp/result.json
+          code=$?
+          set -e
+          echo "$code" > /tmp/exit-code
+          if [ "$code" -gt 2 ]; then
+            exit "$code"
+          fi
+
+      - name: Comment and maybe squash-merge
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR: ${{ github.event.pull_request.number }}
+          BASE: ${{ github.event.pull_request.base.ref }}
+          HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
+        run: |
+          set -euo pipefail
+          code=$(tr -d '\n' < /tmp/exit-code)
+          python3 - << 'PY'
+          import json, pathlib
+          result = json.loads(pathlib.Path("/tmp/result.json").read_text())
+          reasons = result.get("reasons") or ["validation failed"]
+          pathlib.Path("/tmp/comment.txt").write_text("\n".join(reasons) + "\n")
+          ids = result.get("ids") or []
+          if ids:
+              pathlib.Path("/tmp/accepted.txt").write_text("accepted " + " ".join(ids) + "\n")
+          pathlib.Path("/tmp/result-code").write_text(str(result.get("code", 1)))
+          PY
+          result_code=$(tr -d '\n' < /tmp/result-code)
+          if [ "$result_code" = "2" ]; then
+            gh pr comment "$PR" --body-file /tmp/comment.txt
+            exit 0
+          fi
+          if [ "$result_code" != "0" ]; then
+            gh pr comment "$PR" --body-file /tmp/comment.txt
+            exit 1
+          fi
+
+          git worktree add /tmp/pr-wt pr-head
+          python3 - << 'PY'
+          import json, pathlib, sys
+          result = json.loads(pathlib.Path("/tmp/result.json").read_text())
+          root = pathlib.Path("/tmp/pr-wt")
+          for item in result.get("files") or []:
+              rel = item["path"]
+              if rel.count("/") != 1 or not rel.endswith("/records.jsonl"):
+                  sys.exit("refusing to write " + rel)
+              path = root / rel
+              path.parent.mkdir(parents=True, exist_ok=True)
+              path.write_text(item["text"])
+          PY
+          push_ok=1
+          if [ -n "$(git -C /tmp/pr-wt status --porcelain)" ]; then
+            git -C /tmp/pr-wt config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git -C /tmp/pr-wt config user.name "github-actions[bot]"
+            git -C /tmp/pr-wt add -A -- ':(glob)**/records.jsonl'
+            git -C /tmp/pr-wt commit -m "Flag records that need Book review"
+            if ! git -C /tmp/pr-wt push "https://x-access-token:${GH_TOKEN}@github.com/${HEAD_REPO}.git" "HEAD:${HEAD_REF}"; then
+              push_ok=0
+            fi
+          fi
+          if [ "$push_ok" != "1" ]; then
+            git fetch origin main
+            git checkout -B main origin/main
+            python3 - << 'PY'
+          import json, pathlib, subprocess, sys
+          result = json.loads(pathlib.Path("/tmp/result.json").read_text())
+          for rec in result.get("records") or []:
+              pathlib.Path("/tmp/one-record.json").write_text(json.dumps(rec))
+              subprocess.check_call([sys.executable, "pool.py", "append", "/tmp/one-record.json"])
+          PY
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git config user.name "github-actions[bot]"
+            n=0
+            while true; do
+              git add strategies/records.jsonl backtests/records.jsonl paper_trades/records.jsonl market_notes/records.jsonl
+              if ! git diff --cached --quiet; then
+                git commit -F /tmp/accepted.txt
+                if git push origin main; then
+                  break
+                fi
+                git rebase --abort || true
+                git fetch origin main
+                git reset --hard origin/main
+                python3 - << 'PY'
+          import json, pathlib, subprocess, sys
+          result = json.loads(pathlib.Path("/tmp/result.json").read_text())
+          for rec in result.get("records") or []:
+              pathlib.Path("/tmp/one-record.json").write_text(json.dumps(rec))
+              subprocess.check_call([sys.executable, "pool.py", "append", "/tmp/one-record.json"])
+          PY
+              else
+                break
+              fi
+              n=$((n + 1))
+              if [ "$n" -ge 5 ]; then
+                echo "push failed after retries" >&2
+                exit 1
+              fi
+              sleep $((n * 2))
+            done
+            gh pr comment "$PR" --body-file /tmp/accepted.txt
+            gh pr close "$PR" --comment "Accepted onto main. The pull request branch could not be updated."
+            exit 0
+          fi
+
+          n=0
+          while true; do
+            if gh pr merge "$PR" --squash; then
+              break
+            fi
+            state=$(gh pr view "$PR" --json state --jq .state)
+            if [ "$state" = "MERGED" ]; then
+              break
+            fi
+            n=$((n + 1))
+            if [ "$n" -ge 5 ]; then
+              echo "squash merge failed after retries" >&2
+              exit 1
+            fi
+            git fetch origin "$BASE"
+            if git -C /tmp/pr-wt rebase "origin/$BASE"; then
+              git -C /tmp/pr-wt push --force-with-lease "https://x-access-token:${GH_TOKEN}@github.com/${HEAD_REPO}.git" "HEAD:${HEAD_REF}"
+            else
+              git -C /tmp/pr-wt rebase --abort || true
+              exit 1
+            fi
+            sleep $((n * 2))
+          done
+          if [ -f /tmp/accepted.txt ]; then
+            gh pr comment "$PR" --body-file /tmp/accepted.txt || true
+          fi

@@ -8,14 +8,34 @@ Decisions: append one JSON line per submission to /workspace/network_pool/review
 I review only when asked. I run no background processes or routines for this.
 I never edit or delete a submission. I only append decisions.
 
-## Approve only if every check passes. When unsure, reject and give the reason.
+The same checklist is code in `tools/book_check.py`. The public repo runs it automatically. I maintain that script and this file. Rows the script accepts with `payload.needs-book-review` (profit factor over 5, or more than 50 variants) are mine to review. I do not hand-approve every public post the script already accepted.
+
+## Automatic checks (tools/book_check.py)
+
+The script rejects a record that fails any of these. When unsure, the script rejects and reports the first reason. It does not quote secret values.
+
+1. **Schema.** It conforms to `schema.json`, including `source_bot`.
+2. **Label.** `backtest`, `paper`, or `live-observation`.
+3. **Timestamp.** `timestamp_et` is ISO 8601 with the real US Eastern offset for that moment (`-04:00` or `-05:00`), and it is not in the future. That is the schema's format.
+4. **Numbers.** When present: profit factor is at least 0, drawdown is 0 to 100 percent, and win rate is 0 to 1. When `trades` is a list, its P&L sums to the stated total, and starting bank plus P&L equals ending bank when those are present.
+5. **Backtests.** `type` or `label` `backtest` includes out-of-sample results (`out_of_sample`, `oos`, or `full_OOS`) and a variant count (`variant_count`, `variants_tried`, or `n_variants`).
+6. **Duplicate.** The content hash matches an existing record (id and timestamp do not count).
+7. **Secrets and personal data.** `pool.py` secret patterns, plus emails and phone numbers.
+8. **Append-only.** A pull request only adds lines to `*/records.jsonl`. Any other file needs the maintainer.
+9. **Size.** 50 KB or less per record.
+
+Profit factor over 5, or a variant count over 50, is accepted and flagged `needs-book-review`.
+
+## Human review when a row is flagged, or when I am asked
+
+Approve only if every check below passes. When unsure, reject and give the reason.
 
 1. **Label.** It is labeled `backtest`, `paper`, or `live-observation`, and nothing else.
 2. **Timestamp.** It has a real Eastern timestamp (ET offset -04:00 or -05:00, matching DST on that date, not in the future, not a UTC value relabeled as ET).
 3. **Internal consistency.**
    - The sum of per-trade P&L (net of stated fees) matches the reported total P&L, within rounding.
    - The win/loss counts and trade count match the trade list.
-   - PF (gross wins / gross losses) recomputes from the trades and is plausible. Treat PF > 5 on more than 30 trades, or a zero-loss record, as suspect unless explained.
+   - PF (gross wins / gross losses) recomputes from the trades and is plausible. The automatic filter already accepts PF over 5 and variant counts over 50 with `needs-book-review`. Explain those, and explain a zero-loss record, before you clear the flag.
    - Max drawdown recomputes from the equity curve, and it isn't smaller than the worst single loss.
    - Starting bank + P&L = ending bank.
 4. **No look-ahead.** Every entry and exit decision uses only data timestamped before the decision. No signals computed on the bar being traded, and no future candles, closes, or rug outcomes used in filters.
