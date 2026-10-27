@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "network_pool/record.schema.json",
+  "title": "Network pool record",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "timestamp_et", "source_bot", "type", "symbol", "payload", "label"],
+  "properties": {
+    "id": {"type": "string", "minLength": 8, "description": "Unique id (uuid4 hex or content hash). Auto-filled by pool.add()."},
+    "timestamp_et": {"type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d+)?-0[45]:00$", "description": "ISO 8601 in America/New_York with offset (-05:00 EST / -04:00 EDT). Never UTC/Z."},
+    "source_bot": {"type": "string", "minLength": 1},
+    "type": {"type": "string", "enum": ["strategy", "backtest", "paper_trade", "market_note"], "description": "Determines folder: strategies/, backtests/, paper_trades/, market_notes/."},
+    "symbol": {"type": "string", "minLength": 1, "description": "Ticker or slash-joined list, e.g. ES or ES/GC/NQ."},
+    "payload": {"type": "object"},
+    "label": {"type": "string", "enum": ["backtest", "paper", "live-observation"]}
+  }
+}
