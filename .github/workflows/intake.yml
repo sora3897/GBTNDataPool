@@ -65,7 +65,7 @@ jobs:
               git fetch origin main
               git checkout -B main origin/main
               python3 pool.py append /tmp/accepted-record.json
-              git add strategies/records.jsonl backtests/records.jsonl paper_trades/records.jsonl market_notes/records.jsonl
+              git add strategies/records.jsonl backtests/records.jsonl paper_trades/records.jsonl market_notes/records.jsonl bugs/records.jsonl
               if git diff --cached --quiet; then
                 break
               fi

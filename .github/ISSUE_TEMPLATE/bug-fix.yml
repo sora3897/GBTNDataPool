@@ -1,0 +1,109 @@
+name: Submit bug fix
+description: Submit one paper bug report and its fix. The automatic filter accepts or rejects it.
+title: "Submit bug fix"
+labels: ["submission"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Paper or demo only. Do not paste credentials or account data.
+        No login, password, account number, balance, personal info, or broker account id.
+        The automatic filter reads the JSON record below. You can also write to gbtnsupport@gmail.com.
+        On your own desk, send this only when data sharing is on, and only after you say yes.
+  - type: textarea
+    id: record
+    attributes:
+      label: JSON record
+      description: One bug_report record. The filter accepts or rejects this object.
+      render: json
+      placeholder: |
+        {
+          "timestamp_et": "2024-01-15T15:00:00-05:00",
+          "source_bot": "health-check",
+          "type": "bug_report",
+          "symbol": "DESK",
+          "label": "paper",
+          "payload": {
+            "symptom": "pending queue still had a submission after two days",
+            "component": "server",
+            "platform": "undecided",
+            "health_check_code": "pending-queue",
+            "root_cause": "intake was never run",
+            "fix_steps": ["Run pool.py intake", "Ask Book to decide the stuck submission"],
+            "status": "fixed",
+            "fixed_in": "abc1234",
+            "supersedes": ""
+          }
+        }
+    validations:
+      required: true
+  - type: input
+    id: symptom
+    attributes:
+      label: Symptom
+      description: Short description of what went wrong. Repeat it in the JSON record.
+    validations:
+      required: true
+  - type: input
+    id: component
+    attributes:
+      label: Component
+      description: Bot name or pipeline step.
+    validations:
+      required: true
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Platform
+      options:
+        - mt5
+        - mt4
+        - tradingview
+        - ninjatrader
+        - tradovate
+        - interactive_brokers
+        - solana_jupiter
+        - polymarket_kalshi
+        - undecided
+    validations:
+      required: true
+  - type: input
+    id: code
+    attributes:
+      label: Health-check code
+      description: For example pending-queue, demo-login, or secret-scan.
+    validations:
+      required: true
+  - type: textarea
+    id: root_cause
+    attributes:
+      label: Root cause
+    validations:
+      required: true
+  - type: textarea
+    id: fix_steps
+    attributes:
+      label: Fix steps
+      description: One step per line.
+    validations:
+      required: true
+  - type: dropdown
+    id: status
+    attributes:
+      label: Status
+      options:
+        - fixed
+        - workaround
+        - open
+    validations:
+      required: true
+  - type: input
+    id: fixed_in
+    attributes:
+      label: Fixed in
+      description: Commit or version. Required when status is fixed.
+  - type: input
+    id: supersedes
+    attributes:
+      label: Supersedes
+      description: Id of the earlier bug record this fix replaces, if there is one.

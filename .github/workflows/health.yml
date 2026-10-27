@@ -1,0 +1,77 @@
+name: health
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+  schedule:
+    - cron: "15 13 * * *"
+
+permissions:
+  contents: read
+
+jobs:
+  health:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      issues: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run unit tests
+        id: tests
+        continue-on-error: true
+        run: python3 -m unittest discover -s tests -v
+
+      - name: Run the repo health check
+        id: repo
+        continue-on-error: true
+        run: python3 tools/health_check.py --mode repo --pool . --json-out /tmp/health.json
+
+      - name: Combine test and health results
+        if: always()
+        env:
+          TESTS_FAILED: ${{ steps.tests.outcome == 'failure' && '1' || '0' }}
+        run: |
+          python3 - << 'PY'
+          import json, os, pathlib
+          path = pathlib.Path("/tmp/health.json")
+          if path.exists():
+              result = json.loads(path.read_text())
+          else:
+              result = {
+                  "status": "fail",
+                  "ok": False,
+                  "checks": [{
+                      "name": "Repo health",
+                      "code": "records",
+                      "status": "fail",
+                      "detail": "The health check did not finish.",
+                      "fix": "Re-run the workflow and read the log.",
+                  }],
+                  "summary": "Health check: fail. The health check did not finish.",
+              }
+          if os.environ.get("TESTS_FAILED") == "1":
+              result["status"] = "fail"
+              result["ok"] = False
+              result.setdefault("checks", []).append({
+                  "name": "Unit tests",
+                  "code": "tests",
+                  "status": "fail",
+                  "detail": "Unit tests failed.",
+                  "fix": "Read the unit test log and fix the failure.",
+              })
+              result["summary"] = (result.get("summary") or "Health check: fail.") + "\nUnit tests: fail. Read the unit test log and fix the failure."
+          path.write_text(json.dumps(result, indent=2) + "\n")
+          PY
+
+      - name: Open, update, or close the health issue
+        if: always() && github.event_name != 'pull_request' && (github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch' || github.event_name == 'schedule')
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: python3 tools/health_check.py --pool . --sync-health-issue /tmp/health.json
+
+      - name: Fail when the check is red
+        if: always()
+        run: python3 -c 'import json,sys; r=json.load(open("/tmp/health.json")); sys.exit(0 if r.get("status")!="fail" else 1)'
