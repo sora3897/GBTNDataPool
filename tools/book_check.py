@@ -446,7 +446,9 @@ def validate_record(record, pool_root=None, hashes=None):
 def _records_from_append(old, new):
     if new == old:
         return None, "no records appended"
-    if old and new.startswith(old):
+    if not old:
+        suffix = new
+    elif new.startswith(old):
         if old and not old.endswith("\n"):
             return None, "diff is not append-only"
         suffix = new[len(old):]

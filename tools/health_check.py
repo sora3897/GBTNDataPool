@@ -39,6 +39,8 @@ TELEGRAM_KEYS = {"connected", "test_ok", "checked_at"}
 SKIP_DIRS = {".git", "__pycache__", ".venv", "node_modules"}
 JSON_SUFFIXES = {".json", ".jsonl"}
 FULL_PRIVACY_PARTS = {"records.jsonl", "pending", "config", "logs"}
+# Git-ignored folder where 'send report to dev' keeps a local copy when sharing is off.
+LOCAL_BUG_REPORTS = Path("local") / "bug_reports"
 
 
 def _check(code, name, status, detail, fix="", safe_fix=None):
@@ -821,7 +823,7 @@ def mark_telegram(root, connected, test_ok):
     })
 
 
-def draft_bug_issue(result):
+def draft_bug_issue(result, root=None):
     """A bug-report draft the user reviews before it is filed. No account values."""
     failed = [item for item in result.get("checks") or [] if item["status"] == "fail"]
     happened = " ".join(item["detail"] for item in failed) or "The health check reported a problem."
@@ -829,6 +831,10 @@ def draft_bug_issue(result):
     steps = "Run python3 tools/health_check.py --mode desk"
     output = result.get("summary") or happened
     platform = "undecided"
+    if root is not None:
+        data, _ = _platform_data(root)
+        if isinstance((data or {}).get("platform"), str):
+            platform = data["platform"]
     return "\n".join([
         "Draft bug report. Please review it before anything is filed.",
         "Do not add credentials or account data.",
@@ -1019,13 +1025,32 @@ def bug_record_from_health(root, result, timestamp_et=None):
     return record
 
 
+def save_local_bug_report(root, record):
+    """Keep a local copy of a bug record in the git-ignored local/bug_reports/ folder.
+
+    Nothing is sent anywhere. Returns the relative path, or None when the record
+    looks like it holds secrets, account data, or personal data (then nothing is written).
+    """
+    if privacy_reasons(record):
+        return None
+    folder = Path(root) / LOCAL_BUG_REPORTS
+    folder.mkdir(parents=True, exist_ok=True)
+    name = re.sub(r"[^A-Za-z0-9_-]", "_", str(record.get("id") or "bug_report")) + ".json"
+    target = folder / name
+    tmp = target.with_suffix(".tmp")
+    tmp.write_text(json.dumps(record, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    os.replace(tmp, target)
+    return (LOCAL_BUG_REPORTS / name).as_posix()
+
+
 def send_report_to_dev(root, result, timestamp_et=None):
     """Plan the health check's 'send report to dev' step.
 
     Never sends or drafts an email, and never uses the user's email account.
     Sharing on: the report becomes a bug_report record that goes through the
     pool's Submit bug fix issue or a records-only pull request, so the
-    automatic trading-data-only filter applies. Sharing off: it stays local.
+    automatic trading-data-only filter applies. Sharing off: nothing is sent; a
+    copy is saved in the git-ignored local/bug_reports/ folder.
     """
     root = Path(root)
     contact = "You can also write to " + SUPPORT_EMAIL + " yourself if you like."
@@ -1040,10 +1065,17 @@ def send_report_to_dev(root, result, timestamp_et=None):
     except (ValueError, json.JSONDecodeError):
         settings = {"share_data": False, "share_bugs": False, "upstream_confirmed": False}
     if not settings.get("share_bugs"):
+        saved = save_local_bug_report(root, record)
+        if saved:
+            kept = "A copy is saved on your machine at " + saved + ". "
+        else:
+            kept = "It looked like it held private data, so no copy was saved. "
         return dict(
             base, route="local", record=record, allowed=False, settings=settings,
+            saved_to=saved,
             message=(
                 "Data sharing is off, so this report stays on your machine and nothing is sent. "
+                + kept +
                 "I can turn sharing on so it goes to the pool through the automatic filter, "
                 "or show you the dev's contact."
             ),
@@ -1187,6 +1219,8 @@ def main(argv):
     parser.add_argument("--mark-telegram", nargs=2, metavar=("CONNECTED", "TEST_OK"))
     parser.add_argument("--report-to-dev", metavar="HEALTH_JSON",
                         help="Plan 'send report to dev' from a saved desk health result. Never emails.")
+    parser.add_argument("--save-local-bug", metavar="RECORD_JSON",
+                        help="Keep a bug_report record in the git-ignored local/bug_reports/ folder. Sends nothing.")
     args = parser.parse_args(argv)
     root = Path(args.pool)
     if args.mark_demo_connected is not None:
@@ -1205,6 +1239,16 @@ def main(argv):
         result = json.loads(Path(args.report_to_dev).read_text(encoding="utf-8"))
         _emit(send_report_to_dev(root, result), args.json_out)
         return 0
+    if args.save_local_bug:
+        record = json.loads(Path(args.save_local_bug).read_text(encoding="utf-8"))
+        saved = save_local_bug_report(root, record)
+        if saved:
+            _emit({"saved_to": saved, "sent": False,
+                   "message": "Saved a local copy at " + saved + ". Nothing was sent."}, args.json_out)
+            return 0
+        _emit({"saved_to": None, "sent": False,
+               "message": "That record looked like it held private data, so nothing was saved."}, args.json_out)
+        return 1
     desk_state = _read_json(args.desk_state) if args.desk_state else None
     if args.apply_safe_fixes is not None:
         outcome = apply_safe_fixes(root, args.apply_safe_fixes, desk_state=desk_state)

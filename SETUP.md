@@ -119,7 +119,7 @@ Show this as a choice widget. Open it again any time they say menu.
 **Send report to dev.** This never emails anyone and never uses the user's email account. Do not draft or send an email for it. Save the health result and run `python3 tools/health_check.py --report-to-dev <health.json>`, then follow its `route`:
 
 - **Data sharing ON** (`route` `pool`): the report becomes a `bug_report` record for `bugs/` with symptom, cause (`root_cause`), fix steps, and status. It goes through the same path as other shared data, the Submit bug fix issue (`.github/ISSUE_TEMPLATE/bug-fix.yml`) or a pull request that only appends to `bugs/records.jsonl`, so the automatic trading-data-only filter accepts or rejects it. Before the first upstream submission, ask for their OK as usual. You can add that they may also write to gbtnsupport@gmail.com themselves.
-- **Data sharing OFF** (`route` `local`): explain that the report stays on their machine and nothing is sent. Offer Turn data sharing on, Show the dev's contact (gbtnsupport@gmail.com, for them to write themselves), and Back to main menu.
+- **Data sharing OFF** (`route` `local`): explain that nothing is sent and that a copy of the report is saved on their machine in `local/bug_reports/` (git-ignored, never committed; the plan's `saved_to` gives the exact file). If `saved_to` is empty, the report looked like it held private data, so no copy was saved. Offer Turn data sharing on, Show the dev's contact (gbtnsupport@gmail.com, for them to write themselves), and Back to main menu.
 
 **Data sharing: ON/OFF.** Toggle `share_data` and `share_bugs` together and confirm the change in one sentence. Off means nothing goes upstream. On still asks for their OK before the first upstream submission.
 

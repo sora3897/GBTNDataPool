@@ -1,0 +1,54 @@
+name: issue-privacy
+
+# Issue bodies are public. If a new or edited issue contains secrets, account data,
+# or personal data anywhere (not only in the JSON record), replace the body with a
+# redaction notice. Runs base-branch code only and never echoes the values.
+on:
+  issues:
+    types: [opened, edited]
+
+permissions:
+  issues: write
+
+jobs:
+  scan:
+    # No loop: edits made with GITHUB_TOKEN never start a new workflow run, the redaction
+    # notice itself scans clean, and bot-made edits are skipped here as a second guard.
+    if: github.event.sender.type != 'Bot'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Scan the whole issue body
+        env:
+          ISSUE_BODY: ${{ github.event.issue.body }}
+        run: |
+          python3 - << 'PY'
+          import json, os, pathlib, sys
+          sys.path.insert(0, ".")
+          from tools.book_check import privacy_reasons
+          reasons = privacy_reasons(os.environ.get("ISSUE_BODY", ""))
+          pathlib.Path("/tmp/privacy.json").write_text(json.dumps(reasons))
+          PY
+
+      - name: Redact when private data was found
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+        run: |
+          set -euo pipefail
+          python3 - << 'PY'
+          import json, pathlib
+          reasons = json.loads(pathlib.Path("/tmp/privacy.json").read_text())
+          if reasons:
+              note = ("This issue was redacted by the automatic privacy filter because it looked like it held: "
+                      + "; ".join(reasons) + ". Please file again without credentials or account data, "
+                      "or write to gbtnsupport@gmail.com.")
+              pathlib.Path("/tmp/redacted.txt").write_text(note + "\n")
+          PY
+          if [ -f /tmp/redacted.txt ]; then
+            gh issue edit "$ISSUE_NUMBER" --body-file /tmp/redacted.txt
+            gh issue comment "$ISSUE_NUMBER" --body-file /tmp/redacted.txt
+          fi
