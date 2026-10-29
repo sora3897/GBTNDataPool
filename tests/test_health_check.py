@@ -1,4 +1,6 @@
 """Desk health, repo health, known fixes, and the health-issue plan."""
+import contextlib
+import io
 import json
 import os
 import shutil
@@ -12,6 +14,7 @@ from zoneinfo import ZoneInfo
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
+from tools.health_check import main as health_main
 from tools.health_check import (
     EXPECTED_BOTS,
     accept_bug_record,
@@ -23,6 +26,7 @@ from tools.health_check import (
     run_desk_health,
     run_repo_health,
     scan_repo,
+    save_local_bug_report,
     send_report_to_dev,
 )
 from tools.sharing import confirm_upstream, set_sharing
@@ -201,6 +205,32 @@ class DeskFixture(unittest.TestCase):
         self.assertIn("Show the dev's contact", plan["options"])
         self.assertIn("Back to main menu", plan["options"])
         self.assertEqual(plan["support_contact"], "gbtnsupport@gmail.com")
+        saved = self.root / plan["saved_to"]
+        self.assertEqual(plan["saved_to"], "local/bug_reports/" + plan["record"]["id"] + ".json")
+        self.assertTrue(saved.is_file())
+        self.assertEqual(json.loads(saved.read_text(encoding="utf-8")), plan["record"])
+        self.assertIn("A copy is saved on your machine", plan["message"])
+        records = self.root / "bugs" / "records.jsonl"
+        if records.exists():
+            self.assertNotIn(plan["record"]["id"], records.read_text(encoding="utf-8"))
+
+    def test_local_bug_report_copy_refuses_private_data(self):
+        record = bug()
+        record["payload"]["symptom"] = "Failed for " + "bob" + "@" + "example.com"
+        self.assertIsNone(save_local_bug_report(self.root, record))
+        self.assertFalse((self.root / "local").exists())
+
+    def test_save_local_bug_cli_keeps_a_copy_and_sends_nothing(self):
+        source = self.root / "resolved_bug.json"
+        source.write_text(json.dumps(bug()), encoding="utf-8")
+        out = self.root / "out.json"
+        with contextlib.redirect_stdout(io.StringIO()):
+            code = health_main(["--pool", str(self.root), "--save-local-bug", str(source), "--json-out", str(out)])
+        self.assertEqual(code, 0)
+        plan = json.loads(out.read_text(encoding="utf-8"))
+        self.assertFalse(plan["sent"])
+        self.assertEqual(plan["saved_to"], "local/bug_reports/bugrecord0101.json")
+        self.assertTrue((self.root / plan["saved_to"]).is_file())
 
     def test_report_to_dev_goes_through_the_pool_when_sharing_is_on(self):
         set_sharing(self.root, True)

@@ -30,6 +30,16 @@ def record(**overrides):
     return base
 
 
+class EmptyRecordsFileTest(unittest.TestCase):
+    def test_first_append_to_empty_records_file_is_accepted(self):
+        from tools.book_check import review_changes
+        rec = {"timestamp_et": "2024-01-15T15:00:00-05:00", "source_bot": "unit-test", "type": "market_note",
+               "symbol": "ES", "label": "paper", "payload": {"note": "first line"}}
+        with tempfile.TemporaryDirectory() as tmp:
+            result = review_changes([("market_notes/records.jsonl", "", json.dumps(rec) + "\n")], tmp)
+        self.assertTrue(result["ok"], result["reasons"])
+
+
 class BookCheckTest(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
