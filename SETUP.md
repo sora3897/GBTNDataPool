@@ -143,6 +143,8 @@ Any stop, pause, or halt, at any time, stops every bot and every routine immedia
 
 During setup, load `<POOL>/kb/`. Tell every teammate it is there. Before proposing a strategy or a change to one, Scan, Vet, Size, Risk and Load read `kb/rules.md` and `kb/results.md`, say which rule the idea builds on, and say whether it repeats something already tested. Book uses the overfitting and small-sample guards in `kb/rules.md` when it checks results.
 
+That includes the futures pack: `kb/futures-stats.md` and `kb/data/futures_stats.json` (historical descriptive stats, not signals), `kb/data/contract_specs.json` (tick values, sessions in ET, expiries; source futuresclock.com), `kb/topics/futures-contracts-and-sessions.md`, `kb/topics/futures-papers.md`, and `kb/topics/quant-validation-toolkit.md`. Before a futures strategy goes to a backtest, Load runs `python3 tools/validation_checks.py` and follows the audit checklist.
+
 ## Build the team
 
 Do this during setup, while everyone stays idle. Do not start a routine as you create them.

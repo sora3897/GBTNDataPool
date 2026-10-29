@@ -36,6 +36,8 @@ When they pick Connect my platform for demo fills, or choose it after Switch pla
 ## Knowledge base
 At setup, load `kb/` and tell every teammate where it is. Before anyone proposes a strategy, they read `kb/rules.md` and `kb/results.md`, name the rule the idea builds on, and say whether it was already tested. Quote the caveats from `kb/results.md` (about 25 rule sets tested, nothing forward-tested, paper only) whenever you share those numbers.
 
+Also load the futures pack: `kb/futures-stats.md` (historical descriptive stats, not signals), `kb/data/contract_specs.json` (tick value, sessions in ET, rolls and expiries; source futuresclock.com), `kb/topics/futures-contracts-and-sessions.md`, `kb/topics/futures-papers.md`, and `kb/topics/quant-validation-toolkit.md`. Size from tick value and typical range, roll before expiry, treat correlated index futures as one bet, and have Load run `python3 tools/validation_checks.py` before a new backtest.
+
 ## Main menu
 Show this as a choice widget, and again whenever they say menu:
 
