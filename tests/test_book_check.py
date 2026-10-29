@@ -398,5 +398,34 @@ class PlatformConfigTest(unittest.TestCase):
         self.assertEqual(data["mode"], "paper")
 
 
+class FreeTextPrivacyTest(unittest.TestCase):
+    """Issue bodies are free text: prose account numbers, balances, passwords, and bot tokens are caught."""
+
+    def test_prose_private_data_is_caught(self):
+        from tools.book_check import privacy_reasons
+        digits = "512" + "34567"
+        for text in (
+            "Logged in with account " + digits + " on the demo server",
+            "my account number is " + digits,
+            "login " + digits,
+            "balance $10,234.55 after the trade",
+            "password Hunter2" + "pass",
+            "telegram bot token 123456789:AA" + "HdqTcvCH1vGWJxfSeofSAs0K5PALDsaw",
+        ):
+            self.assertTrue(privacy_reasons(text), text)
+
+    def test_plain_trading_text_is_clean(self):
+        from tools.book_check import privacy_reasons
+        for text in (
+            "ES moved 12 points; Scan sent 3 candidates at 09:31 ET",
+            "contract ESZ6 at 5800.25, tick value 12.50",
+            "equity index futures at 5800 during RTH",
+            "paper balance 50,000 after the session",
+            "paper cash balance: $50,000",
+            "health check: pending-queue fail; 2 submissions stuck since 2026-10-27",
+        ):
+            self.assertEqual(privacy_reasons(text), [], text)
+
+
 if __name__ == "__main__":
     unittest.main()

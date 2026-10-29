@@ -45,10 +45,14 @@ jobs:
           if reasons:
               note = ("This issue was redacted by the automatic privacy filter because it looked like it held: "
                       + "; ".join(reasons) + ". Please file again without credentials or account data, "
-                      "or write to gbtnsupport@gmail.com.")
+                      "or write to gbtnsupport@gmail.com. A maintainer will also remove the original text from this issue's edit history.")
               pathlib.Path("/tmp/redacted.txt").write_text(note + "\n")
           PY
           if [ -f /tmp/redacted.txt ]; then
             gh issue edit "$ISSUE_NUMBER" --body-file /tmp/redacted.txt
             gh issue comment "$ISSUE_NUMBER" --body-file /tmp/redacted.txt
+            # GitHub keeps the original body in the issue's edit history. Flag it so the
+            # maintainer can delete that revision (issue menu: edited > Delete revision).
+            gh label create privacy-redacted --description "Body redacted; maintainer must delete the edit-history revision" --color D93F0B 2>/dev/null || true
+            gh issue edit "$ISSUE_NUMBER" --add-label privacy-redacted
           fi

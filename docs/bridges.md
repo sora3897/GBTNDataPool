@@ -1,6 +1,6 @@
 # Platform API and bridge walkthrough (demo accounts only)
 
-The coordinator uses this file to walk any user, step by step and assuming no experience, through getting API access or a bridge for their platform so the desk's paper fills can land inside their own **demo** account. Open it from the main menu: **Switch platforms → Connect my platform (API or bridge)**, or from the menu item **Connect my platform for demo fills**.
+The coordinator uses this file to walk any user, step by step and assuming no experience, through getting API access or a bridge for their platform so the desk's paper fills can land inside their own **demo** account. Open it from the main menu: **Switch platforms → Connect my platform for demo fills (API or bridge walkthrough)**, or from the menu item **Connect my platform for demo fills (API or bridge walkthrough)**.
 
 Read `config/platform.json` first and show only the section for that platform. Go one step at a time. After each step, wait for the user to say done, and offer these choices: **Next step**, **I'm stuck, explain more**, **Back to main menu**.
 

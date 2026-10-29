@@ -250,6 +250,14 @@ _BROKER_ID_PHRASE = re.compile(
     r"(?i)\b(?:broker\s+account(?:\s+id)?|account\s+id|ib\s+account)\s*[:=#]?\s*[A-Za-z0-9][A-Za-z0-9-]{3,}"
 )
 _IB_ID = re.compile(r"\bDU\d{6,8}\b|\bU\d{7,8}\b")
+# Free text only (issue bodies, logs): account or login numbers, balances, and passwords written in prose.
+_PROSE_ACCOUNT = re.compile(
+    r"(?i)\b(?:account|acct|login)(?:\s+(?:number|no\.?|num|id))?\s*(?:is|was|:|=|#)?\s*\d{5,12}\b"
+)
+_PROSE_BALANCE = re.compile(
+    r"(?i)(?<!paper\s)(?<!cash\s)(?<!sim\s)\bbalance\b\s*(?:is|was|of|at|:|=)?\s*(?:[$\u20ac\u00a3]|usd\s*)?\s*\d[\d,]{2,}(?:\.\d+)?"
+)
+_PROSE_PASSWORD = re.compile(r"(?i)\bpass(?:word|wd)\b\s+(?:is\s+|was\s+)?[^\s,.;]{6,}")
 
 
 def _norm_key(key):
@@ -317,6 +325,13 @@ def privacy_reasons(obj):
         reasons.append("account data: balance or equity")
     if _BROKER_ID_PHRASE.search(text) or _IB_ID.search(text):
         reasons.append("account data: broker account id")
+    if isinstance(obj, str):
+        if _PROSE_ACCOUNT.search(text):
+            reasons.append("account data: account number")
+        if _PROSE_BALANCE.search(text):
+            reasons.append("account data: balance or equity")
+        if _PROSE_PASSWORD.search(text):
+            reasons.append("secret or personal data: password")
     return _dedupe(reasons)
 
 

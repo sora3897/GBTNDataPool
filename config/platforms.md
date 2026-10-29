@@ -8,7 +8,7 @@ While `platform` is `undecided`, the team runs backtests on free historical data
 
 ## MetaTrader 5 (MT5)
 
-Stored value: `mt5`. This is the platform the original team was built on. It suits forex, CFDs, and futures offered by an MT5 broker. Use the broker's **demo** account only. The user creates and logs into that demo account. The login stays out of chat, the repo, the pool, and files. Secure storage is the only place it may sit, and only if the user asks.
+Stored value: `mt5`. This is the default platform. It suits forex, CFDs, and futures offered by an MT5 broker. Use the broker's **demo** account only. The user creates and logs into that demo account. The login stays out of chat, the repo, the pool, and files. Secure storage is the only place it may sit, and only if the user asks.
 
 ## MetaTrader 4 (MT4)
 

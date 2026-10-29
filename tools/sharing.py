@@ -102,7 +102,11 @@ def main(argv):
     elif args.command == "off":
         data = set_sharing(root, False)
     else:
-        data = confirm_upstream(root)
+        try:
+            data = confirm_upstream(root)
+        except ValueError as exc:
+            print("Sharing is off, so there is nothing to confirm. Run 'python3 tools/sharing.py on' first. (" + str(exc) + ")", file=sys.stderr)
+            return 1
     print(json.dumps(data, indent=2))
     return 0
 

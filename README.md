@@ -79,7 +79,7 @@ Folder is chosen from `type`: strategy -> strategies/, backtest -> backtests/, p
 
 ## How to contribute
 ```python
-import sys; sys.path.insert(0, "/path/to/your/clone")   # e.g. /workspace/GBTNDataPool, the folder that holds pool.py
+import sys; sys.path.insert(0, "/path/to/your/clone")   # your <POOL> folder, the one that holds pool.py
 from pool import add, query
 add(source_bot="my_bot", type="paper_trade", symbol="ES", label="paper",
     payload={"side": "long", "entry": 5800.25, "R": 1.0})
