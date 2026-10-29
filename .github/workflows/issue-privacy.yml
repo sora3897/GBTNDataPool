@@ -1,8 +1,8 @@
 name: issue-privacy
 
-# Issue bodies are public. If a new or edited issue contains secrets, account data,
-# or personal data anywhere (not only in the JSON record), replace the body with a
-# redaction notice. Runs base-branch code only and never echoes the values.
+# Issue titles and bodies are public. If a new or edited issue contains secrets, account
+# data, or personal data anywhere (title, or body, not only in the JSON record), replace the
+# body with a redaction notice (and the title too when the title held it). Runs base-branch code only and never echoes the values.
 on:
   issues:
     types: [opened, edited]
@@ -21,16 +21,20 @@ jobs:
         with:
           ref: main
 
-      - name: Scan the whole issue body
+      - name: Scan the issue title and the whole body
         env:
+          ISSUE_TITLE: ${{ github.event.issue.title }}
           ISSUE_BODY: ${{ github.event.issue.body }}
         run: |
           python3 - << 'PY'
           import json, os, pathlib, sys
           sys.path.insert(0, ".")
           from tools.book_check import privacy_reasons
-          reasons = privacy_reasons(os.environ.get("ISSUE_BODY", ""))
+          title_reasons = privacy_reasons(os.environ.get("ISSUE_TITLE", ""))
+          reasons = sorted(set(privacy_reasons(os.environ.get("ISSUE_BODY", "")) + title_reasons))
           pathlib.Path("/tmp/privacy.json").write_text(json.dumps(reasons))
+          if title_reasons:
+              pathlib.Path("/tmp/title-hit").write_text("1")
           PY
 
       - name: Redact when private data was found
@@ -49,6 +53,9 @@ jobs:
               pathlib.Path("/tmp/redacted.txt").write_text(note + "\n")
           PY
           if [ -f /tmp/redacted.txt ]; then
+            if [ -f /tmp/title-hit ]; then
+              gh issue edit "$ISSUE_NUMBER" --title "Redacted by the privacy filter"
+            fi
             gh issue edit "$ISSUE_NUMBER" --body-file /tmp/redacted.txt
             gh issue comment "$ISSUE_NUMBER" --body-file /tmp/redacted.txt
             # GitHub keeps the original body in the issue's edit history. Flag it so the

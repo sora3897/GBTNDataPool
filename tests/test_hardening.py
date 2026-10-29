@@ -191,8 +191,14 @@ class BrokenFilesTest(Desk):
                 self.assertEqual(code, 2, (flag, path))
                 self.assertIn("Nothing was changed or sent", err)
                 self.assertNotIn("Traceback", err)
-        code, _, err = self.health("--json-out", str(self.root / "no" / "dir" / "x.json"))
+        blocker = self.root / "blocker"
+        blocker.write_text("a file, not a folder", encoding="utf-8")
+        code, _, err = self.health("--json-out", str(blocker / "x.json"))
         self.assertEqual(code, 2)
+        self.assertIn("Nothing was changed or sent", err)
+        code, _, _ = self.health("--json-out", str(self.root / "local" / "health.json"))
+        self.assertEqual(code, 0)
+        self.assertTrue((self.root / "local" / "health.json").is_file())
         code, _, err = self.health("--mark-telegram", "yes", "no")
         self.assertEqual(code, 2)
 
@@ -256,8 +262,39 @@ class Mt5PrivacyTest(unittest.TestCase):
     def test_mt5_server_names_and_broker_keys_are_private(self):
         self.assertIn("account data: broker server name", privacy_reasons("filled on ICMarketsSC-Demo02 at 5100"))
         self.assertIn("account data: broker server name", privacy_reasons("server MetaQuotes-Demo"))
-        for key in ("broker", "server", "mt5_server", "trade_server", "metaapi_account_id"):
+        for key in ("broker", "server_name", "mt5_server", "trade_server", "metaapi_account_id"):
             self.assertTrue(privacy_reasons({"payload": {key: "x1"}}), key)
+
+    def test_desk_state_with_the_server_bot_is_not_account_data(self):
+        # "server" is one of the nine bots, so the desk state file must not look like broker identity.
+        self.assertEqual(privacy_reasons(default_desk_state()), [])
+        self.assertEqual(privacy_reasons({"payload": {"component": "server", "note": "server bot idle"}}), [])
+
+    def test_metaapi_token_keys_and_account_ids_are_blocked(self):
+        for key in ("metaapi_token", "access_token", "auth_token", "bot_token", "mt4_login"):
+            self.assertTrue(pool.secret_hits({"payload": {key: "abc"}}), key)
+        self.assertFalse(pool.secret_hits({"payload": {"token": "BONK"}}))
+        uuid = "1eda642a-a9a3-457c-99af-3bc5e8d5c4c9"
+        self.assertIn("account data: broker account id", privacy_reasons("my metaapi account is " + uuid))
+        self.assertEqual(privacy_reasons("record id " + uuid), [])
+
+    def test_token_assignments_and_prefixed_env_names_in_free_text_are_blocked(self):
+        # Fake placeholder values only. Env-style names with a prefix (SOME_SERVICE_API_KEY=...) must be caught too.
+        fake = "fake" + "value123"  # built at runtime so the repo scan does not flag this file
+        for text in ("auth_token: " + fake, "metaapi_token=" + fake, "bot_token = " + fake,
+                     "refresh_token: " + fake, "EXAMPLE_WALLET_PRIVATE_KEY=" + fake,
+                     "EXAMPLE_SERVICE_API_KEY: " + fake, "Authorization: Bearer " + fake * 2,
+                     "mt4 login 12345678 on the demo", "mt4 12345678"):
+            self.assertTrue(privacy_reasons(text), text)
+        uuid = "1eda642a-a9a3-457c-99af-3bc5e8d5c4c9"
+        self.assertIn("account data: broker account id", privacy_reasons("accountId: " + uuid))
+        for text in ("token BONK up 5%", "the auth token was rotated", "bearer of good news"):
+            self.assertEqual(privacy_reasons(text), [], text)
+
+    def test_repo_scan_flags_prefixed_env_secrets_but_not_code(self):
+        from tools.health_check import _text_privacy
+        self.assertTrue(_text_privacy("EXAMPLE_SERVICE_API_KEY=" + "fake" + "value123\n"))
+        self.assertEqual(_text_privacy('_EXAMPLE_PASSWORD = re.compile(r"x")\nKEY_API_KEY = os.environ.get("X")\n'), [])
 
     def test_metaapi_style_token_is_blocked(self):
         token = "eyJ" + "a" * 20 + ".eyJ" + "b" * 20 + "." + "c" * 20

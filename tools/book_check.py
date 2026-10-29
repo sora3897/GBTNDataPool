@@ -234,7 +234,7 @@ _BALANCE_KEYS = {
 _BROKER_ID_KEYS = {
     "brokeraccountid", "brokeraccount", "accountid", "ibaccount",
     "mt4account", "mt5account", "brokerid", "clearingaccount",
-    "brokeraccountnumber", "broker", "brokername", "server", "servername",
+    "brokeraccountnumber", "broker", "brokername", "servername", "brokerserver",
     "tradeserver", "mt4server", "mt5server", "metaapiaccountid",
 }
 _NAME_VALUE = re.compile(r"^[A-Z][a-z]{1,20}(?:\s+[A-Z][a-z]{1,20}){1,2}$")
@@ -251,8 +251,10 @@ _BROKER_ID_PHRASE = re.compile(
     r"(?i)\b(?:broker\s+account(?:\s+id)?|account\s+id|ib\s+account)\s*[:=#]?\s*[A-Za-z0-9][A-Za-z0-9-]{3,}"
 )
 _IB_ID = re.compile(r"\bDU\d{6,8}\b|\bU\d{7,8}\b")
+# A MetaAPI account id (a UUID) written next to "metaapi" or "account" (also "accountId", "metaapi_account").
+_METAAPI_ID = re.compile(r"(?i)\b(?:metaapi|account)[a-z_]*\b[^\n]{0,24}?\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b")
 # MT4/MT5 trade server names name the broker, for example "BrokerName-Demo" or "Broker-Live3".
-_MT_SERVER = re.compile(r"\b[A-Z][A-Za-z]{2,}[A-Za-z0-9.]*-(?:Demo|Live|Real)\d{0,3}\b")
+_MT_SERVER = re.compile(r"(?<![\w.-])[A-Z][A-Za-z]{2,30}[A-Za-z0-9.]{0,30}-(?:Demo|Live|Real)\d{0,3}\b")
 # Free text only (issue bodies, logs): account or login numbers, balances, and passwords written in prose.
 _PROSE_ACCOUNT = re.compile(
     r"(?i)\b(?:account|acct|login)(?:\s+(?:number|no\.?|num|id))?\s*(?:is|was|:|=|#)?\s*\d{5,12}\b"
@@ -301,44 +303,65 @@ def _key_privacy_reasons(value):
     return reasons
 
 
+def _all_keys(obj):
+    if isinstance(obj, dict):
+        return [str(k) for k in obj] + [k for v in obj.values() for k in _all_keys(v)]
+    if isinstance(obj, list):
+        return [k for v in obj for k in _all_keys(v)]
+    return []
+
+
 def privacy_reasons(obj):
-    """Reasons for secrets, account data, or personal data. Never includes the values."""
+    """Reasons for secrets, account data, or personal data. Never includes the values.
+
+    Every check runs on the raw text and on normalized forms of it (Unicode
+    look-alikes and zero-width characters removed, spaced-out characters joined,
+    base64 decoded), on each string value and each key of a record.
+    """
+    from tools import pii
     if isinstance(obj, str):
         hits = pool.secret_hits({"log": obj})
         text = obj
         key_reasons = []
+        prose = [obj]
     else:
         hits = pool.secret_hits(obj)
         text = json.dumps(obj)
-        key_reasons = _key_privacy_reasons(obj)
+        key_reasons = _key_privacy_reasons(obj) + pii.key_reasons(obj)
+        prose = pool._strings(obj) + _all_keys(obj)
+    texts = [text] + prose
+    forms = [v.replace(SUPPORT_EMAIL, "") for t in texts if isinstance(t, str) for v in pii.variants(t)]
+    prose_forms = [v.replace(SUPPORT_EMAIL, "") for t in prose if isinstance(t, str) for v in pii.variants(t)]
+    hits = sorted(set(hits) | {name for v in forms[1:] for name in pool.find_secrets(v)}
+                  | {"possible seed phrase" for v in prose_forms if pool._seed_like(v)})
     reasons = []
     if hits:
         reasons.append("secret or personal data: " + ", ".join(hits))
     reasons.extend(key_reasons)
-    cleaned = text.replace(SUPPORT_EMAIL, "")
-    if EMAIL_RE.search(cleaned):
+    hit = lambda rx: any(rx.search(v) for v in forms)
+    if hit(EMAIL_RE):
         reasons.append("personal data: email")
-    if PHONE_RE.search(text):
+    if hit(PHONE_RE):
         reasons.append("personal data: phone number")
-    if _NAME_PHRASE.search(text):
+    if hit(_NAME_PHRASE):
         reasons.append("personal data: name")
-    if _ACCOUNT_NUM_PHRASE.search(text):
+    if hit(_ACCOUNT_NUM_PHRASE):
         reasons.append("account data: account number")
-    if _BALANCE_PHRASE.search(text):
+    if hit(_BALANCE_PHRASE):
         reasons.append("account data: balance or equity")
-    if _BROKER_ID_PHRASE.search(text) or _IB_ID.search(text):
+    if hit(_BROKER_ID_PHRASE) or hit(_IB_ID) or hit(_METAAPI_ID):
         reasons.append("account data: broker account id")
-    if _MT_SERVER.search(text):
+    if hit(_MT_SERVER):
         reasons.append("account data: broker server name")
     # Prose checks run on free text and on every string value inside a record
     # (a bug report's root_cause or a note is free text too).
-    prose = [obj] if isinstance(obj, str) else pool._strings(obj)
-    if any(_PROSE_ACCOUNT.search(s) for s in prose):
+    if any(_PROSE_ACCOUNT.search(s) for s in prose_forms):
         reasons.append("account data: account number")
-    if any(_PROSE_BALANCE.search(s) for s in prose):
+    if any(_PROSE_BALANCE.search(s) for s in prose_forms):
         reasons.append("account data: balance or equity")
-    if any(_PROSE_PASSWORD.search(s) for s in prose):
+    if any(_PROSE_PASSWORD.search(s) for s in prose_forms):
         reasons.append("secret or personal data: password")
+    reasons.extend(pii.text_reasons([t.replace(SUPPORT_EMAIL, "") for t in prose if isinstance(t, str)]))
     return _dedupe(reasons)
 
 

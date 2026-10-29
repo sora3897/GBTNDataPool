@@ -61,15 +61,18 @@ SECRET_PATTERNS = [
     (r"\bAKIA[0-9A-Z]{16}\b", "AWS access key"),
     (r"\bgh[pousr]_[A-Za-z0-9]{30,}", "GitHub token"),
     (r"\bxox[abpr]-[A-Za-z0-9-]{10,}", "Slack token"),
-    (r"\b\d{8,10}:AA[A-Za-z0-9_-]{30,}", "Telegram bot token"),
+    (r"(?<!\d)\d{8,10}:AA[A-Za-z0-9_-]{30,}", "Telegram bot token"),
     (r"\bAIza[0-9A-Za-z_-]{35}\b", "Google API key"),
     (r"\beyJ[A-Za-z0-9_-]{10,}\.eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}", "JWT or API token (for example a MetaAPI token)"),
-    (r"(?i)\b(api[_-]?key|api[_-]?secret|secret[_-]?key|access[_-]?token|private[_-]?key|password|passwd)\b\s*[\"']?\s*[:=]\s*[\"']?[^\s\"',}]{6,}", "credential assignment"),
-    (r"(?i)\bmt5\b[^\n]{0,40}?\b\d{5,12}\b", "MT5 login number"),
+    # Also catches prefixed env-style names such as SOME_SERVICE_API_KEY=... (the "_" before the keyword is not a word boundary).
+    (r"(?i)(?:\b|(?<=_))(api[_-]?key|api[_-]?secret|secret[_-]?key|(?:access|auth|bot|metaapi|refresh|bearer)[_-]?token|private[_-]?key|password|passwd)\b\s*[\"']?\s*[:=]\s*[\"']?[^\s\"',}]{6,}", "credential assignment"),
+    (r"\bBearer\s+[A-Za-z0-9._~+/-]{16,}", "bearer token"),
+    (r"(?i)\bmt[45]\b[^\n]{0,40}?(?<![\d.,])\d{5,12}(?![\d]|[.,]\d)", "MT4/MT5 login number"),
     (r"(?i)\b(mt5[_ -]?)?(login|account)[_ -]?(id|number|no)?\b\s*[\"']?\s*[:=#]\s*[\"']?\d{5,12}\b", "broker login number"),
     (r"(?i)\b(seed[_ -]?phrase|mnemonic|recovery[_ -]?phrase)\b", "seed phrase keyword"),
 ]
-SECRET_KEYS = re.compile(r"(?i)(private_?key|secret|api_?key|password|mnemonic|seed_?phrase|mt5_?login|wallet_?key)")
+SECRET_KEYS = re.compile(r"(?i)(private_?key|secret|api_?key|password|mnemonic|seed_?phrase|mt[45]_?login|wallet_?key"
+                         r"|(?:access|auth|api|bearer|refresh|metaapi|bot)_?token)")
 
 def find_secrets(text):
     return [name for pat, name in SECRET_PATTERNS if re.search(pat, text)]
@@ -283,7 +286,7 @@ def decide(submission_id, verdict, reason, reviewer=AUTHORIZED_REVIEWER):
     if not SID_RE.match(str(submission_id)) or not (PENDING / f"{submission_id}.json").is_file():
         raise ValueError(f"no such pending submission: {submission_id}")
     if not str(reason).strip(): raise ValueError("reason is required")
-    if find_secrets(str(reason)): raise ValueError("secret guard: reason rejected")
+    if find_secrets(str(reason)) or privacy_block(str(reason)): raise ValueError("secret guard: reason rejected")
     line = {"submission_id": submission_id, "verdict": verdict, "reason": str(reason), "reviewer": str(reviewer), "timestamp_et": now_et()}
     DECISIONS.parent.mkdir(parents=True, exist_ok=True)
     with open(DECISIONS, "a") as fh: fh.write(json.dumps(line, sort_keys=True) + "\n")

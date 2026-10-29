@@ -92,7 +92,7 @@ def _iter_records(root):
         path = root / folder / "records.jsonl"
         if not path.is_file():
             continue
-        for lineno, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+        for lineno, line in enumerate(path.read_text(encoding="utf-8", errors="replace").splitlines(), 1):
             if line.strip():
                 yield folder, path, lineno, line
 
@@ -189,9 +189,10 @@ def _full_privacy_target(path, root):
 
 # Keyword patterns describe the policy and match the detector source itself.
 # Token patterns still run on every file. Real assignments are checked separately.
-_SOURCE_SKIP = {"credential assignment", "seed phrase keyword", "MT5 login number", "broker login number"}
+_SOURCE_SKIP = {"credential assignment", "seed phrase keyword", "MT4/MT5 login number", "broker login number"}
 _ASSIGNMENT = re.compile(
-    r"(?i)\b(?:api[_-]?key|api[_-]?secret|secret[_-]?key|access[_-]?token|private[_-]?key|password|passwd)\b"
+    r"(?i)(?:\b|(?<=_))(?:api[_-]?key|api[_-]?secret|secret[_-]?key|(?:access|auth|bot|metaapi|refresh|bearer)[_-]?token"
+    r"|private[_-]?key|password|passwd)\b"
     r"\s*[\"']?\s*[:=]\s*[\"']?([^\s\"',}]{6,})"
 )
 
@@ -207,7 +208,8 @@ def _text_privacy(text):
             names.append(name)
     for match in _ASSIGNMENT.finditer(text):
         value = match.group(1)
-        if value.startswith(("$", "{", "(", "[")) or "GITHUB" in value.upper():
+        # Skip placeholders and code (a call such as re.compile(...) or os.environ.get(...)).
+        if value.startswith(("$", "{", "(", "[")) or "(" in value or "GITHUB" in value.upper():
             continue
         names.append("credential assignment")
         break
@@ -1289,7 +1291,9 @@ def _emit(result, json_out):
     text = json.dumps(result, indent=2)
     print(text)
     if json_out:
-        Path(json_out).write_text(text + "\n", encoding="utf-8")
+        out = Path(json_out)
+        out.parent.mkdir(parents=True, exist_ok=True)  # e.g. local/health.json on a fresh clone
+        out.write_text(text + "\n", encoding="utf-8")
 
 
 def main(argv):
@@ -1319,9 +1323,17 @@ def main(argv):
         return _run(args)
     except (OSError, ValueError) as exc:
         # Missing or unreadable input files: say so plainly. Never echo file contents.
-        kind = "file not found" if isinstance(exc, FileNotFoundError) else (
-            "not valid JSON" if isinstance(exc, json.JSONDecodeError) else type(exc).__name__)
-        print("health_check: could not read an input file (" + kind + "). Nothing was changed or sent.", file=sys.stderr)
+        if isinstance(exc, FileNotFoundError):
+            kind = "file not found"
+        elif isinstance(exc, json.JSONDecodeError):
+            kind = "not valid JSON"
+        elif isinstance(exc, UnicodeDecodeError):
+            kind = "not readable text"
+        elif isinstance(exc, OSError):
+            kind = "could not open or write the file"
+        else:
+            kind = "not a JSON object"
+        print("health_check: could not use a file (" + kind + "). Nothing was changed or sent.", file=sys.stderr)
         return 2
 
 

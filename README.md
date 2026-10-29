@@ -105,7 +105,7 @@ Rules
 - No secrets: add() rejects payloads that look like private keys, API keys/tokens (including MetaAPI-style JWTs), MT5/broker login numbers,
   seed phrases, or credential fields. Book's check also rejects MT4/MT5 server names (such as `Broker-Demo`) and broker or server fields. Do not put them in .md files either.
 - Label honestly: `backtest` (offline sim), `paper` (paper/sim account), `live-observation` (watched live market, no trade).
-- `tools/book_check.py` is Book's checklist as code. It checks schema, label, Eastern `timestamp_et`, `source_bot`, numeric sanity, backtest out-of-sample results and variant count, content-hash duplicates, secrets and personal data, account numbers, balances or equity tied to an account, names, broker account ids, bug-record fields, an append-only diff, and a 50 KB cap. Profit factor over 5, or more than 50 variants, is accepted with `payload.needs-book-review`.
+- `tools/book_check.py` is Book's checklist as code. It checks schema, label, Eastern `timestamp_et`, `source_bot`, numeric sanity, backtest out-of-sample results and variant count, content-hash duplicates, secrets and personal data (emails, phone numbers, street addresses, names, wallet addresses, IP addresses, user-name file paths, chat ids and handles, card and government id numbers, keys and tokens in prose, URLs, `.env` lines, or base64; spaced-out, zero-width, and look-alike-letter tricks are undone first; see `tools/pii.py`), account numbers, balances or equity tied to an account, broker server names and account ids, bug-record fields, an append-only diff, and a 50 KB cap. Profit factor over 5, or more than 50 variants, is accepted with `payload.needs-book-review`.
 
 ## Health & bug fixes
 
