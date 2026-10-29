@@ -232,6 +232,15 @@ class DeskFixture(unittest.TestCase):
         self.assertEqual(plan["saved_to"], "local/bug_reports/bugrecord0101.json")
         self.assertTrue((self.root / plan["saved_to"]).is_file())
 
+    def test_missing_desk_state_file_does_not_crash(self):
+        out = self.root / "out.json"
+        missing = self.root / "config" / "desk_state.json"
+        with contextlib.redirect_stdout(io.StringIO()):
+            code = health_main(["--pool", str(self.root), "--mode", "desk", "--desk-state", str(missing), "--json-out", str(out)])
+        result = json.loads(out.read_text(encoding="utf-8"))
+        self.assertNotEqual(result["status"], "fail")
+        self.assertEqual(code, 0)
+
     def test_report_to_dev_goes_through_the_pool_when_sharing_is_on(self):
         set_sharing(self.root, True)
         result = self._failing_result()

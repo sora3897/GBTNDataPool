@@ -22,7 +22,10 @@ def load_settings(root):
     path = settings_path(root)
     if not path.is_file():
         return dict(DEFAULT)
-    raw = json.loads(path.read_text(encoding="utf-8"))
+    try:
+        raw = json.loads(path.read_text(encoding="utf-8"))
+    except UnicodeDecodeError as exc:
+        raise ValueError("user settings are not readable text") from exc
     if not isinstance(raw, dict):
         raise ValueError("user settings must be a JSON object")
     if "share_data" not in raw:
@@ -95,12 +98,24 @@ def main(argv):
     parser.add_argument("command", choices=("status", "on", "off", "confirm"))
     args = parser.parse_args(argv)
     root = Path(args.pool)
+    if args.command == "off":
+        # Off always works, even when the settings file is broken: it writes the safe default.
+        try:
+            data = set_sharing(root, False)
+        except ValueError:
+            data = save_settings(root, DEFAULT)
+        print(json.dumps(data, indent=2))
+        return 0
+    try:
+        load_settings(root)
+    except ValueError:
+        print("config/user_settings.json could not be read, so sharing stays off and nothing is sent. "
+              "Run 'python3 tools/sharing.py off' to reset it, then choose again.", file=sys.stderr)
+        return 1
     if args.command == "status":
         data = load_settings(root)
     elif args.command == "on":
         data = set_sharing(root, True)
-    elif args.command == "off":
-        data = set_sharing(root, False)
     else:
         try:
             data = confirm_upstream(root)

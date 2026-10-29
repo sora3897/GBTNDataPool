@@ -39,7 +39,7 @@ Applies to `mt5`, `ninjatrader` and `tradovate`.
 
 **Routes.**
 - **Desk simulation** (always available): the default until the user connects a bridge.
-- **MT5:** through MetaAPI to the user's MT5 **demo** account, because the official MT5 Python package needs the Windows terminal and this box is Linux (`docs/bridges.md`). Only after the demo check shows the account's trade mode is demo.
+- **MT5:** through MetaAPI to the user's MT5 **demo** account, because the official MT5 Python package needs the Windows terminal and this box is Linux (`docs/bridges.md`). Only after the demo check shows the account's trade mode is demo (`type` is `ACCOUNT_TRADE_MODE_DEMO`; contest or real counts as not demo). Use the symbol name exactly as the demo account lists it (brokers add suffixes such as `.a` or `m`), read volume step and contract size from that symbol's spec, and never log the account information, login, or server name.
 - **NinjaTrader:** the Automated Trading Interface or a trusted bridge, to the **Sim** account only. Every order names the Sim or demo account.
 - **Tradovate:** the demo environment and demo credentials only.
 
