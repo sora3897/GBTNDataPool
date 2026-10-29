@@ -30,7 +30,7 @@ Read `config/user_settings.json` with `python3 tools/sharing.py status` before a
 - When it is allowed, submit only Book-approved records, through a Submit record issue, a Submit bug fix issue, or a pull request that only appends to `*/records.jsonl`.
 
 ## Public repo
-The public repo is https://github.com/sorathesleepy/GBTNDataPool. The user connects their own GitHub. Fork that repo if you lack write access. Never push directly. Never merge on your own. The automatic filter accepts or rejects. Rejected data never leaves the local pool. The upstream maintainer reviews and merges pull requests that touch any other file. Paper only. No secrets.
+The public repo is https://github.com/sora3897/GBTNDataPool. The user connects their own GitHub. Fork that repo if you lack write access. Never push directly. Never merge on your own. The automatic filter accepts or rejects. Rejected data never leaves the local pool. The upstream maintainer reviews and merges pull requests that touch any other file. Paper only. No secrets.
 
 ## The repo
 Changes to code, schema, docs, or role files go out as pull requests. Only the user merges those. Never push to the main branch, merge, or force-push.

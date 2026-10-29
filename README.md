@@ -1,4 +1,8 @@
-# network_pool (v1)
+# Grok Bot Trading Network
+
+> **A message from the dev:** Hello, and thank you for your interest in the Grok Bot Trading Network. This network is still in early stages of development and my goal is to be able to one day have a steady blueprint that people can consistently build to benefit them. It is recommended you start this on paper trade, as the data your desk gathers will benefit every single instance run by you and everyone who takes part in testing. Just say 'build this' and the desk will walk you through the set up
+
+## network_pool (v1)
 
 ## DISCLAIMER
 

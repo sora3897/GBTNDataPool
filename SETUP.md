@@ -6,7 +6,7 @@ You stay idle after setup. No routines and no processes run until the user expli
 
 > All data and activity are backtest or paper/demo only. Nothing here is financial advice. Bots never set up a real-money connection.
 
-If the repo is not on this machine yet, clone `https://github.com/sorathesleepy/GBTNDataPool` (or copy a provided folder) to a pool path, for example `/workspace/network_pool`, before you greet them. Confirm `README.md`, `CONTRIBUTING.md`, `schema.json`, `pool.py`, and `bots/` exist, then run `python3 pool.py count` once. Call this location `<POOL>`. Then start the welcome. Do not pick a platform for them while you do that.
+If the repo is not on this machine yet, clone `https://github.com/sora3897/GBTNDataPool` (or copy a provided folder) to a pool path, for example `/workspace/network_pool`, before you greet them. Confirm `README.md`, `CONTRIBUTING.md`, `schema.json`, `pool.py`, and `bots/` exist, then run `python3 pool.py count` once. Call this location `<POOL>`. Then start the welcome. Do not pick a platform for them while you do that.
 
 ## 1. Welcome
 
@@ -175,7 +175,7 @@ Changes to this repo go out as pull requests. Only the user merges those. Never 
 
 ## Public contribution flow
 
-Anything headed to the public repo `https://github.com/sorathesleepy/GBTNDataPool` follows this order. Paper or demo only. No secrets. Skip the upstream steps when data sharing is off.
+Anything headed to the public repo `https://github.com/sora3897/GBTNDataPool` follows this order. Paper or demo only. No secrets. Skip the upstream steps when data sharing is off.
 
 1. **Local submit.** A teammate adds a record on the local pool with `pool.py submit`. This still happens when sharing is off.
 2. **Book review.** Book is the mandatory local filter. It runs the checklist before anything is eligible to leave the machine. Rejected data never leaves the local pool. Book maintains `tools/book_check.py` and `review/BOOK_CHECKLIST.md`, and reviews accepted rows flagged `needs-book-review`.
