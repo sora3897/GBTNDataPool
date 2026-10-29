@@ -288,6 +288,30 @@ class RepoHealthTest(unittest.TestCase):
             self.assertEqual(duplicate["status"], "fail")
 
 
+class SupersededRecordTest(unittest.TestCase):
+    def test_superseded_backtest_no_longer_warns(self):
+        from tools.health_check import check_record_lines
+        old = {
+            "id": "oldbacktest01",
+            "timestamp_et": "2024-02-15T15:00:00-05:00",
+            "source_bot": "unit-test",
+            "type": "backtest",
+            "symbol": "ES",
+            "label": "backtest",
+            "payload": {"oos": {"pf": 1.1}},
+        }
+        new = dict(old, id="newbacktest01",
+                   payload={"oos": {"pf": 1.1}, "variant_count": 3, "supersedes": "oldbacktest01"})
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "backtests").mkdir()
+            path = root / "backtests" / "records.jsonl"
+            path.write_text(json.dumps(old) + "\n", encoding="utf-8")
+            self.assertTrue(any("variant count" in p for p in check_record_lines(root)))
+            path.write_text(json.dumps(old) + "\n" + json.dumps(new) + "\n", encoding="utf-8")
+            self.assertEqual(check_record_lines(root), [])
+
+
 class IssuePlanTest(unittest.TestCase):
     def test_open_comment_and_close_with_fix(self):
         failed = {"status": "fail", "summary": "Health check: fail.", "checks": []}

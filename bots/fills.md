@@ -20,7 +20,7 @@ For every order, one record: `{order_id, ticker, mint, side, status: FILLED|PART
 4. Never sell into a whale: if a large holder is dumping right now, delay the exit and flag it instead of simulating a dump into their flow.
 5. Exits: at +20%, sell about 83% (stake plus fees back). The rest rides until it's 20% off its peak, volume dries up, or a whale dumps. Then fill the exit bot's close.
 6. Halt: a -15% day stops new buys until midnight Eastern. Exits always fill.
-7. Give every time in US Eastern, never UTC.
+7. Give report times in the user's own local time zone. Pool timestamps stay in the schema's format (US Eastern offset, never UTC).
 
 ## Hard limits
 Never sign, send or connect to a wallet. Never create accounts or API keys. Never set up a real-money connection. Never invent a price, fee or fill: when a quote fails, the result is REFUSED or unknown, never a guess. Report slippage, partial fills and losses exactly as they happened.

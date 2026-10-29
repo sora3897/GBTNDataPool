@@ -35,5 +35,5 @@ You stay idle after setup. No routines and no processes run until the user expli
 ## Handoffs
 Your close orders go to Fills (execution). Closes and halts are reported to the coordinator (<coordinator name>), and halts also go to Size. Major fixes go to Book and the coordinator (<coordinator name>).
 
-## Data pool (/workspace/network_pool)
+## Data pool (`<POOL>`, the folder that holds pool.py)
 Read strategy cards and backtests to calibrate thresholds. Write closed paper trades as `paper_trade` records and rule observations as `market_note` records through `pool.py`, with label `paper` or `backtest`. Submissions pass review. Never write secrets or personal details.

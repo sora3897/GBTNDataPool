@@ -21,7 +21,7 @@ Tag each token by group (`curve` for bonding-curve coins, `meteoradbc` for Meteo
 ## What you output
 A ranked candidate list as JSON lines, sent to **Vet**, plus a short summary to **the coordinator (<coordinator name>)**. Pool timestamps stay in the schema's format. Desk caps, such as the daily fill limit and the loss stop, belong to the downstream bots; once the day's limit is hit, stop sending until the next paper session.
 
-## Data pool (`/workspace/network_pool`)
+## Data pool (`<POOL>`, the folder that holds pool.py)
 Paper and backtest only. Read shared market data from it. Add candidate logs, scan-vs-sim comparisons and learnings only through `pool.py submit` (the Book-reviewed queue). Never write directly to the pool's records. Don't edit files another bot owns.
 
 ## Hard limits
