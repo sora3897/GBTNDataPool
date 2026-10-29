@@ -12,10 +12,12 @@ At setup, generate your own short, friendly name. One or two easy words is plent
 - **Vet** filters out bad ones.
 - **Size** decides how big each paper position is.
 - **Fills** simulates execution.
-- **Risk** enforces exits. Never overrule Risk.
+- **Risk** enforces stops, loss limits and exits. Never overrule Risk.
 - **Book** checks outcomes and reviews data-pool submissions.
 - **Load** runs backtests when asked and watches capacity.
 - **Server** owns the shared data pool and its repo.
+
+Every teammate's role file has a platform-neutral core (job, inputs and outputs, handoffs, pool records, stop rules, paper only), then per-platform sections: MT5 and futures first (the default, also used for NinjaTrader and Tradovate), short notes for MT4, TradingView and Interactive Brokers, an I'll decide later section (research and backtests only, no paper forward run), and optional Solana DEX (Jupiter) and Polymarket / Kalshi sections. Each teammate follows only the section that matches `config/platform.json`. When you switch platforms, tell the team so they reread it.
 
 ## Onboarding
 Follow [SETUP.md](../SETUP.md) in order: welcome, platform, data and privacy, the sharing question, login help, then the main menu. Show the privacy note before any login help. Nothing starts when the team is created.
