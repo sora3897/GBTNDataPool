@@ -234,7 +234,7 @@ _BALANCE_KEYS = {
 _BROKER_ID_KEYS = {
     "brokeraccountid", "brokeraccount", "accountid", "ibaccount",
     "mt4account", "mt5account", "brokerid", "clearingaccount",
-    "brokeraccountnumber", "broker", "brokername", "server", "servername",
+    "brokeraccountnumber", "broker", "brokername", "servername", "brokerserver",
     "tradeserver", "mt4server", "mt5server", "metaapiaccountid",
 }
 _NAME_VALUE = re.compile(r"^[A-Z][a-z]{1,20}(?:\s+[A-Z][a-z]{1,20}){1,2}$")
@@ -251,6 +251,8 @@ _BROKER_ID_PHRASE = re.compile(
     r"(?i)\b(?:broker\s+account(?:\s+id)?|account\s+id|ib\s+account)\s*[:=#]?\s*[A-Za-z0-9][A-Za-z0-9-]{3,}"
 )
 _IB_ID = re.compile(r"\bDU\d{6,8}\b|\bU\d{7,8}\b")
+# A MetaAPI account id (a UUID) written next to "metaapi" or "account" (also "accountId", "metaapi_account").
+_METAAPI_ID = re.compile(r"(?i)\b(?:metaapi|account)[a-z_]*\b[^\n]{0,24}?\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b")
 # MT4/MT5 trade server names name the broker, for example "BrokerName-Demo" or "Broker-Live3".
 _MT_SERVER = re.compile(r"\b[A-Z][A-Za-z]{2,}[A-Za-z0-9.]*-(?:Demo|Live|Real)\d{0,3}\b")
 # Free text only (issue bodies, logs): account or login numbers, balances, and passwords written in prose.
@@ -327,6 +329,8 @@ def privacy_reasons(obj):
     if _BALANCE_PHRASE.search(text):
         reasons.append("account data: balance or equity")
     if _BROKER_ID_PHRASE.search(text) or _IB_ID.search(text):
+        reasons.append("account data: broker account id")
+    if _METAAPI_ID.search(text):
         reasons.append("account data: broker account id")
     if _MT_SERVER.search(text):
         reasons.append("account data: broker server name")

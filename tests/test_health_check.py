@@ -232,6 +232,23 @@ class DeskFixture(unittest.TestCase):
         self.assertEqual(plan["saved_to"], "local/bug_reports/bugrecord0101.json")
         self.assertTrue((self.root / plan["saved_to"]).is_file())
 
+    def test_undecodable_records_line_is_reported_not_fatal(self):
+        folder = self.root / "backtests"
+        folder.mkdir(exist_ok=True)
+        with open(folder / "records.jsonl", "ab") as handle:
+            handle.write(b"\xff\xfe\n")
+        result = run_repo_health(self.root)
+        records = next(item for item in result["checks"] if item["code"] == "records")
+        self.assertEqual(records["status"], "fail")
+        self.assertIn("not JSON", json.dumps(records))
+        desk = run_desk_health(self.root, now=NOW)
+        self.assertEqual(next(i for i in desk["checks"] if i["code"] == "pool")["status"], "fail")
+
+    def test_repo_scan_accepts_the_default_desk_state(self):
+        from tools.health_check import default_desk_state
+        (self.root / "config" / "desk_state.json").write_text(json.dumps(default_desk_state()), encoding="utf-8")
+        self.assertFalse(any("desk_state" in p for p in scan_repo(self.root)))
+
     def test_missing_desk_state_file_does_not_crash(self):
         out = self.root / "out.json"
         missing = self.root / "config" / "desk_state.json"
