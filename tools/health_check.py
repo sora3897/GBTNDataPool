@@ -43,10 +43,13 @@ FULL_PRIVACY_PARTS = {"records.jsonl", "pending", "config", "logs"}
 LOCAL_BUG_REPORTS = Path("local") / "bug_reports"
 
 
-def _check(code, name, status, detail, fix="", safe_fix=None):
+def _check(code, name, status, detail, fix="", safe_fix=None, expected=False):
     item = {"code": code, "name": name, "status": status, "detail": detail, "fix": fix}
     if safe_fix:
         item["safe_fix"] = safe_fix
+    if expected:
+        # A normal state for a new desk (for example no demo account yet). Not a bug to report.
+        item["expected"] = True
     return item
 
 
@@ -101,7 +104,7 @@ def check_record_lines(root):
     for _folder, _path, _lineno, line in _iter_records(root):
         try:
             sup = (json.loads(line).get("payload") or {}).get("supersedes")
-        except (json.JSONDecodeError, AttributeError):
+        except (ValueError, AttributeError):
             continue
         if isinstance(sup, str) and sup:
             superseded.add(sup)
@@ -128,6 +131,9 @@ def duplicate_ids(root):
             rec = json.loads(line)
         except json.JSONDecodeError:
             continue
+        if not isinstance(rec, dict):
+            problems.append(f"{path.parent.name}/{path.name}:{lineno}: line is not a JSON object")
+            continue
         ident = rec.get("id")
         if not isinstance(ident, str) or not ident:
             problems.append(f"{path.name}:{lineno}: missing id")
@@ -147,6 +153,8 @@ def content_duplicates(root):
         try:
             rec = json.loads(line)
         except json.JSONDecodeError:
+            continue
+        if not isinstance(rec, dict):
             continue
         digest = pool.content_hash(rec)
         prior = seen.get(digest)
@@ -289,18 +297,53 @@ def lint_workflows(root):
     return problems
 
 
+DESK_STATE_FILE = Path("config") / "desk_state.json"
+_STOPPED_WORDS = {"stopped", "stop", "paused", "pause", "halted", "halt", "idle"}
+
+
+def _normalize_desk_state(data):
+    """Shape desk state as {desk, bots, routines}. A file in the wrong shape is flagged, never a crash."""
+    if not isinstance(data, dict):
+        return {"desk": "stopped", "bots": {}, "routines": [], "invalid": True}
+    invalid = data.get("invalid") is True
+    desk = data.get("desk", "stopped")
+    if not isinstance(desk, str):
+        desk, invalid = "stopped", True
+    desk = desk.strip().lower() or "stopped"
+    if desk in _STOPPED_WORDS:
+        desk = "stopped"
+    bots = data.get("bots", {})
+    if bots is None:
+        bots = {}
+    if not isinstance(bots, dict):
+        bots, invalid = {}, True
+    clean_bots = {}
+    for name, value in bots.items():
+        state = value.strip().lower() if isinstance(value, str) else value
+        if state in ("paused", "pause", "halted", "halt", "stop"):
+            state = "stopped"
+        clean_bots[str(name).strip().lower()] = state
+    routines = data.get("routines", [])
+    if routines is None:
+        routines = []
+    if isinstance(routines, str):
+        routines = [routines] if routines.strip() else []
+    if not isinstance(routines, list):
+        routines, invalid = [], True
+    return {"desk": desk, "bots": clean_bots, "routines": routines, "invalid": invalid}
+
+
 def _load_desk_state(root, override):
     if override is not None:
-        return override
-    path = Path(root) / "config" / "desk_state.json"
+        return _normalize_desk_state(override)
+    path = Path(root) / DESK_STATE_FILE
     if not path.is_file():
-        return {"desk": "stopped", "bots": {}}
-    data = _read_json(path)
-    if not isinstance(data, dict):
-        return {"desk": "stopped", "bots": {}}
-    data.setdefault("desk", "stopped")
-    data.setdefault("bots", {})
-    return data
+        return _normalize_desk_state({})
+    try:
+        data = _read_json(path)
+    except ValueError:
+        return {"desk": "stopped", "bots": {}, "routines": [], "invalid": True}
+    return _normalize_desk_state(data)
 
 
 def _platform_data(root):
@@ -309,7 +352,7 @@ def _platform_data(root):
         return None, "missing"
     try:
         data = _read_json(path)
-    except json.JSONDecodeError:
+    except ValueError:
         return None, "invalid"
     if not isinstance(data, dict):
         return None, "invalid"
@@ -321,7 +364,7 @@ def _status_dirty(path, allowed):
         return False, None
     try:
         data = _read_json(path)
-    except json.JSONDecodeError:
+    except ValueError:
         return True, None
     if not isinstance(data, dict):
         return True, None
@@ -337,6 +380,13 @@ def _check_bots(root, state):
             "bots", "Bots", "fail",
             "Missing bot roles: " + ", ".join(missing) + ".",
             "Restore the missing role file from the repo, then run this check again. The new bot stays idle.",
+        )
+    if state.get("invalid"):
+        return _check(
+            "bots", "Bots", "warn",
+            "config/desk_state.json is not in the expected shape, so bot states could not be checked.",
+            "I can rewrite it with the desk stopped, every bot idle, and no routines if you say yes. Then run the check again.",
+            safe_fix="reset-desk-state",
         )
     desk = state.get("desk") or "stopped"
     bots = state.get("bots") or {}
@@ -378,13 +428,25 @@ def _check_platform(root):
         return _check(
             "platform", "Platform", "fail",
             "config/platform.json should only contain platform, mode, and chosen_at.",
-            "Remove any extra fields. Do not put a login, account number, or balance in that file.",
+            "I can remove the extra fields if you say yes, keeping only platform, mode (paper), and chosen_at. "
+            "Do not put a login, account number, server, or balance in that file.",
+            safe_fix="strip-platform-extras",
         )
-    if data.get("platform") not in PLATFORMS:
+    value = data.get("platform")
+    if isinstance(value, str) and value not in PLATFORMS and value.strip().lower() in PLATFORMS:
+        return _check(
+            "platform", "Platform", "fail",
+            "The platform value has the wrong case or extra spaces (for example MT5 instead of mt5).",
+            "I can rewrite it in the stored form, such as mt5, if you say yes. Nothing else in the file changes.",
+            safe_fix="normalize-platform",
+        )
+    if not isinstance(value, str) or value not in PLATFORMS:
         return _check(
             "platform", "Platform", "fail",
             "The platform value is not one this desk knows.",
-            "Pick the platform again from the menu. I'll decide later is fine.",
+            "Pick the platform again from the menu. I'll decide later is fine. "
+            "I can also reset it to undecided (paper) if you say yes.",
+            safe_fix="write-platform-default",
         )
     if data.get("mode") != "paper":
         return _check(
@@ -415,6 +477,8 @@ def _check_login(root):
             safe_fix="strip-demo-connection",
         )
     platform = data.get("platform") if isinstance(data, dict) else None
+    if not isinstance(platform, str):
+        platform = None
     if problem or platform not in NEEDS_LOGIN:
         if status and status.get("connected") is True:
             return _check(
@@ -432,6 +496,7 @@ def _check_login(root):
             "Connect your own demo or paper account from the menu. Use the platform's official login or API. "
             "Credentials stay in secure storage, never in chat, the repo, the pool, or a file. "
             "Ask for step-by-step instructions if you would rather do it yourself.",
+            expected=True,
         )
     return _check(
         "demo-login", "Demo login", "pass",
@@ -469,9 +534,12 @@ def _parse_et(value):
     if not isinstance(value, str):
         return None
     try:
-        return datetime.fromisoformat(value)
+        stamp = datetime.fromisoformat(value)
     except ValueError:
         return None
+    if stamp.tzinfo is None:
+        stamp = stamp.replace(tzinfo=NY)
+    return stamp
 
 
 def _check_pending(root, now):
@@ -484,7 +552,7 @@ def _check_pending(root, now):
     for path in files:
         try:
             data = _read_json(path)
-        except json.JSONDecodeError:
+        except ValueError:
             stuck.append(path.name)
             continue
         stamp = _parse_et(data.get("submitted_at_et")) if isinstance(data, dict) else None
@@ -588,6 +656,8 @@ def find_known_fixes(root, code=None, symptom=None):
         try:
             rec = json.loads(line)
         except json.JSONDecodeError:
+            continue
+        if not isinstance(rec, dict):
             continue
         payload = rec.get("payload") if isinstance(rec.get("payload"), dict) else {}
         code_ok = code and str(payload.get("health_check_code") or "").lower() == str(code).lower()
@@ -758,7 +828,7 @@ def _connected_flag(path):
         return False
     try:
         data = _read_json(path)
-    except json.JSONDecodeError:
+    except ValueError:
         return False
     return bool(isinstance(data, dict) and data.get("connected") is True)
 
@@ -794,9 +864,20 @@ def apply_safe_fixes(root, ids, desk_state=None, logs=None, now=None):
                 try:
                     data = _read_json(path)
                     test_ok = bool(isinstance(data, dict) and data.get("test_ok") is True and connected)
-                except json.JSONDecodeError:
+                except ValueError:
                     test_ok = False
             _write_json(path, {"connected": connected, "test_ok": test_ok})
+        elif ident == "strip-platform-extras":
+            path = root / "config" / "platform.json"
+            data = _read_json(path)
+            _write_json(path, {"platform": data.get("platform"), "mode": "paper", "chosen_at": data.get("chosen_at")})
+        elif ident == "normalize-platform":
+            path = root / "config" / "platform.json"
+            data = _read_json(path)
+            data["platform"] = str(data.get("platform") or "").strip().lower()
+            _write_json(path, {key: data.get(key) for key in ("platform", "mode", "chosen_at")})
+        elif ident == "reset-desk-state":
+            _write_json(root / DESK_STATE_FILE, default_desk_state())
         elif ident == "reset-sharing-off":
             _write_json(root / "config" / "user_settings.json", {
                 "share_data": False, "share_bugs": False, "upstream_confirmed": False,
@@ -807,6 +888,11 @@ def apply_safe_fixes(root, ids, desk_state=None, logs=None, now=None):
         applied.append(ident)
     follow = run_desk_health(root, desk_state=desk_state, logs=logs, now=now)
     return {"applied": applied, "refused": refused, "health": follow}
+
+
+def default_desk_state():
+    """Desk stopped, every bot idle, no routines. Written once at the end of setup."""
+    return {"desk": "stopped", "bots": {name: "idle" for name in EXPECTED_BOTS}, "routines": []}
 
 
 def mark_demo_connected(root, connected):
@@ -988,7 +1074,7 @@ def bug_record_from_health(root, result, timestamp_et=None):
     """
     checks = result.get("checks") or []
     bad = [item for item in checks if item.get("status") == "fail"]
-    bad = bad or [item for item in checks if item.get("status") == "warn"]
+    bad = bad or [item for item in checks if item.get("status") == "warn" and not item.get("expected")]
     if not bad:
         return None
     item = bad[0]
@@ -1058,7 +1144,7 @@ def send_report_to_dev(root, result, timestamp_et=None):
     record = bug_record_from_health(root, result, timestamp_et)
     if record is None:
         return dict(base, route="none", record=None, allowed=False,
-                    message="The health check passed, so there is nothing to report.",
+                    message="Nothing to report: the health check found no problems. An expected warning, such as a demo login not connected yet, is not a bug.",
                     options=["Back to main menu"])
     try:
         settings = load_settings(root)
@@ -1216,13 +1302,43 @@ def main(argv):
     parser.add_argument("--sync-health-issue", metavar="HEALTH_JSON",
                         help="CI only (.github/workflows/health.yml). Uses gh and git push; refuses to run outside GitHub Actions.")
     parser.add_argument("--mark-demo-connected", choices=("true", "false"))
-    parser.add_argument("--mark-telegram", nargs=2, metavar=("CONNECTED", "TEST_OK"))
+    parser.add_argument("--mark-telegram", nargs=2, metavar=("CONNECTED", "TEST_OK"),
+                        help="true or false for each: whether alerts are connected, and whether the test alert worked")
+    parser.add_argument("--write-desk-state", choices=("stopped", "running"),
+                        help="Write config/desk_state.json with the desk stopped (every bot idle) or running. Holds no account data.")
     parser.add_argument("--report-to-dev", metavar="HEALTH_JSON",
                         help="Plan 'send report to dev' from a saved desk health result. Never emails.")
     parser.add_argument("--save-local-bug", metavar="RECORD_JSON",
                         help="Keep a bug_report record in the git-ignored local/bug_reports/ folder. Sends nothing.")
     args = parser.parse_args(argv)
+    if args.mark_telegram is not None:
+        bad = [value for value in args.mark_telegram if value not in ("true", "false")]
+        if bad:
+            parser.error("--mark-telegram takes two values, each true or false")
+    try:
+        return _run(args)
+    except (OSError, ValueError) as exc:
+        # Missing or unreadable input files: say so plainly. Never echo file contents.
+        kind = "file not found" if isinstance(exc, FileNotFoundError) else (
+            "not valid JSON" if isinstance(exc, json.JSONDecodeError) else type(exc).__name__)
+        print("health_check: could not read an input file (" + kind + "). Nothing was changed or sent.", file=sys.stderr)
+        return 2
+
+
+def _read_object(path, what):
+    data = _read_json(path)
+    if not isinstance(data, dict):
+        raise ValueError(what + " must be a JSON object")
+    return data
+
+
+def _run(args):
     root = Path(args.pool)
+    if args.write_desk_state is not None:
+        state = default_desk_state()
+        if args.write_desk_state == "running":
+            state["desk"] = "running"
+        _write_json(root / DESK_STATE_FILE, state)
     if args.mark_demo_connected is not None:
         mark_demo_connected(root, args.mark_demo_connected == "true")
     if args.mark_telegram is not None:
@@ -1236,11 +1352,11 @@ def main(argv):
         _emit({key: value for key, value in plan.items() if key != "bug"}, args.json_out)
         return 0
     if args.report_to_dev:
-        result = json.loads(Path(args.report_to_dev).read_text(encoding="utf-8"))
+        result = _read_object(args.report_to_dev, "the health result")
         _emit(send_report_to_dev(root, result), args.json_out)
         return 0
     if args.save_local_bug:
-        record = json.loads(Path(args.save_local_bug).read_text(encoding="utf-8"))
+        record = _read_object(args.save_local_bug, "the bug record")
         saved = save_local_bug_report(root, record)
         if saved:
             _emit({"saved_to": saved, "sent": False,
@@ -1249,7 +1365,17 @@ def main(argv):
         _emit({"saved_to": None, "sent": False,
                "message": "That record looked like it held private data, so nothing was saved."}, args.json_out)
         return 1
-    desk_state = _read_json(args.desk_state) if args.desk_state else None
+    desk_state = None
+    if args.desk_state:
+        path = Path(args.desk_state)
+        if path.is_file():
+            try:
+                desk_state = _read_json(path)
+            except ValueError:
+                desk_state = {"invalid": True, "bots": None}
+            if not isinstance(desk_state, dict):
+                desk_state = {"invalid": True}
+    # A missing --desk-state file falls back to the default (desk stopped, no bots listed).
     if args.apply_safe_fixes is not None:
         outcome = apply_safe_fixes(root, args.apply_safe_fixes, desk_state=desk_state)
         _emit(outcome, args.json_out)

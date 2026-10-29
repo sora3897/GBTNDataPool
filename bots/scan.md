@@ -37,6 +37,8 @@ Paper and backtest only. Read shared market data and strategy cards with `pool.q
 
 Applies to `mt5`, `ninjatrader` and `tradovate`. On MT5, use the broker's **demo** account only. The kb covers US exchange futures; for a broker's forex or CFD symbols there are no kb stats, so read the symbol's own spec from the demo terminal and mark kb stats as not applicable.
 
+**What an MT5 user sees first.** Many MT5 demo brokers list forex and CFDs (for example US500, US100 or NAS100, XAUUSD) rather than CME futures. The tested rules E10 and E21 were tested only on CME futures (ES, NQ, GC). A CFD that tracks one of those is a different instrument (broker hours, spread, and price feed), so mark it `tested_in_results: false` until Load backtests that exact symbol. Only CME futures the MT5 demo itself offers use the tested rules directly. In the first sessions, log each candidate symbol's live spread as a `market_note` labeled `live-observation`, with the time (no broker name, server, or account detail) so Vet has a spread to compare against. Until then Vet rejects those symbols, and that is expected, not a bug.
+
 **Universe.** Start with the contracts the desk has tested: ES, NQ and GC, traded as micros (MES, MNQ, MGC) per `kb/results.md`. Tick values and sessions come from `kb/data/contract_specs.json` (FuturesClock compilation; verify with the exchange). Other contracts need a Load backtest first.
 
 **Session-aware scanning.**

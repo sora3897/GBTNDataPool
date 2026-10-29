@@ -74,7 +74,7 @@ Help them connect their own demo or paper account on the platform they chose. Us
 
 If they want, give step-by-step instructions instead, and do not take the secret.
 
-For MT5 or MT4, the test call goes through MetaAPI (this box is Linux; see [docs/bridges.md](docs/bridges.md)). Offer to do that walkthrough now or later from Connect my platform. Until a demo account is connected, the desk uses its own paper simulation, and the health check shows the demo login as a warning, not a failure.
+For MT5 or MT4, the test call goes through MetaAPI (this box is Linux; see [docs/bridges.md](docs/bridges.md)). Offer to do that walkthrough now or later from Connect my platform. Until a demo account is connected, the desk uses its own paper simulation, and the health check shows the demo login as a warning, not a failure. That warning is expected and is never sent as a bug report. Tell an MT5 user plainly: many MT5 demo brokers offer forex and CFDs (US500, NAS100, XAUUSD) instead of CME futures. The desk's tested rules come from CME futures, so those CFD symbols start as untested and Vet rejects them until their spread is logged and Load has backtested them. That is expected, not a fault.
 
 Paper or demo only. Never a real-money login, and never a live trading toggle.
 
@@ -118,7 +118,7 @@ Show this as a choice widget. Open it again any time they say menu.
 
 **Health check.** Run `python3 tools/health_check.py --mode desk --desk-state config/desk_state.json`. Report pass, warn, or fail in plain English. It checks that every bot exists and is idle or running as expected, that `config/platform.json` is valid, that the demo login test call worked when a login is needed (no account data shown), that the local pool validates (`pool.py` count plus the schema check), that the pending queue is not stuck, that the Telegram alert test works if they connected it, that local logs have no secrets or account data, and that nothing is running when the desk is stopped. For each failure, give the suggested fix. If `bugs/` has a matching symptom or health-check code, offer that known fix first. Apply a safe fix only with their OK. Offer the choices Apply the safe fix, Send report to dev, and Back to main menu.
 
-**Desk state for the health check.** Keep `config/desk_state.json` current (it is git-ignored and holds no account data): `{"desk": "stopped" or "running", "bots": {"coordinator": "idle", "scan": "idle", "vet": "idle", "size": "idle", "fills": "idle", "risk": "idle", "book": "idle", "load": "idle", "server": "idle"}, "routines": []}`. Each bot is `idle`, `running`, or `stopped`; `routines` lists any active routine by name (for example the end-of-day recap). Update it when the desk starts or stops and when a routine is turned on or off. Run the check as `python3 tools/health_check.py --mode desk --desk-state config/desk_state.json` (the tool also reads that file on its own when the flag is left out). Without it, the Bots and Stopped desk checks have nothing to check.
+**Desk state for the health check.** Keep `config/desk_state.json` current (it is git-ignored and holds no account data): `{"desk": "stopped" or "running", "bots": {"coordinator": "idle", "scan": "idle", "vet": "idle", "size": "idle", "fills": "idle", "risk": "idle", "book": "idle", "load": "idle", "server": "idle"}, "routines": []}`. Each bot is `idle`, `running`, or `stopped` (a pause or halt is written as `stopped`); `routines` lists any active routine by name (for example the end-of-day recap). Update it when the desk starts or stops and when a routine is turned on or off. `python3 tools/health_check.py --write-desk-state stopped` (or `running`) rewrites it in the right shape, and the health check offers the safe fix `reset-desk-state` if the file is ever broken. Run the check as `python3 tools/health_check.py --mode desk --desk-state config/desk_state.json` (the tool also reads that file on its own when the flag is left out). Without it, the Bots and Stopped desk checks have nothing to check.
 
 **Send report to dev.** This never emails anyone and never uses the user's email account. Do not draft or send an email for it. Save the health result and run `python3 tools/health_check.py --report-to-dev <health.json>`, then follow its `route`:
 
@@ -133,7 +133,7 @@ They can ask "What's this desk doing?" any time. Answer in plain English: Scan l
 
 ## 7. Stay idle
 
-After the menu is up, confirm that every bot is idle. No routines, no cron, no standing process. Role rules that used to say "check every few seconds" run as one-off checks only after they say start. The public repo's GitHub Actions filter is not a process on their machine. The end-of-day recap stays off unless they opted in.
+After the menu is up, confirm that every bot is idle. No routines, no cron, no standing process. Write `config/desk_state.json` once now with the desk `stopped`, every bot `idle`, and `routines` empty: run `python3 tools/health_check.py --write-desk-state stopped` (format in the Health check item above). Role rules that used to say "check every few seconds" run as one-off checks only after they say start. The public repo's GitHub Actions filter is not a process on their machine. The end-of-day recap stays off unless they opted in.
 
 ## 8. Starting and stopping
 

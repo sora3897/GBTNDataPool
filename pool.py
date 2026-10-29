@@ -63,6 +63,7 @@ SECRET_PATTERNS = [
     (r"\bxox[abpr]-[A-Za-z0-9-]{10,}", "Slack token"),
     (r"\b\d{8,10}:AA[A-Za-z0-9_-]{30,}", "Telegram bot token"),
     (r"\bAIza[0-9A-Za-z_-]{35}\b", "Google API key"),
+    (r"\beyJ[A-Za-z0-9_-]{10,}\.eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}", "JWT or API token (for example a MetaAPI token)"),
     (r"(?i)\b(api[_-]?key|api[_-]?secret|secret[_-]?key|access[_-]?token|private[_-]?key|password|passwd)\b\s*[\"']?\s*[:=]\s*[\"']?[^\s\"',}]{6,}", "credential assignment"),
     (r"(?i)\bmt5\b[^\n]{0,40}?\b\d{5,12}\b", "MT5 login number"),
     (r"(?i)\b(mt5[_ -]?)?(login|account)[_ -]?(id|number|no)?\b\s*[\"']?\s*[:=#]\s*[\"']?\d{5,12}\b", "broker login number"),
@@ -139,12 +140,16 @@ def _iter(folder=None):
         if folder and folder not in (t, f): continue
         p = ROOT / f / "records.jsonl"
         if p.exists():
-            for line in p.read_text().splitlines():
-                if line.strip(): yield json.loads(line)
+            for line in p.read_text(encoding="utf-8", errors="replace").splitlines():
+                if not line.strip(): continue
+                try: rec = json.loads(line)
+                except ValueError: continue  # a broken line is reported by the health check, never fatal here
+                if isinstance(rec, dict): yield rec
 
 def add(record=None, **fields):
     """Validate, guard, de-dup and append one record. Returns the stored record. Raises ValueError."""
     _bind_paths()
+    if record is not None and not isinstance(record, dict): raise ValueError("record must be a JSON object")
     rec = dict(record or {}); rec.update(fields)
     rec.setdefault("id", uuid.uuid4().hex)
     rec.setdefault("timestamp_et", now_et())
@@ -198,7 +203,8 @@ def query(folder=None, **filters):
     for r in _iter(folder):
         ok = True
         for k, v in filters.items():
-            got = r.get("payload", {}).get(k[9:]) if k.startswith("payload__") else r.get(k)
+            payload = r.get("payload") if isinstance(r.get("payload"), dict) else {}
+            got = payload.get(k[9:]) if k.startswith("payload__") else r.get(k)
             if str(got) != str(v): ok = False; break
         if ok: out.append(r)
     return out
@@ -233,11 +239,13 @@ def _reject(path, sid, reason, keep_file=True):
 def submit(record=None, **fields):
     """Queue one record for review. Secrets are refused before anything is written. Returns the submission_id."""
     _bind_paths()
+    if record is not None and not isinstance(record, dict): raise ValueError("record must be a JSON object")
     rec = dict(record or {}); rec.update(fields)
     blocked = privacy_block(rec)
     if blocked: raise ValueError("secret guard: submission refused, nothing written (" + "; ".join(blocked) + ")")
     rec.setdefault("id", uuid.uuid4().hex)  # fixed now so promote can never double-append
     rec.setdefault("timestamp_et", now_et())
+    if not isinstance(rec["timestamp_et"], str): raise ValueError("timestamp_et must be a string (or leave it out)")
     sid = "sub_" + re.sub(r"\D", "", rec["timestamp_et"][:19]) + "_" + uuid.uuid4().hex[:8]
     _write_json(PENDING / f"{sid}.json", {"submission_id": sid, "submitted_at_et": now_et(), "status": "submitted", "record": rec})
     return sid
@@ -286,9 +294,11 @@ def _latest_decisions():
     _bind_paths()
     latest = {}
     if DECISIONS.exists():
-        for line in DECISIONS.read_text().splitlines():
+        for line in DECISIONS.read_text(encoding="utf-8", errors="replace").splitlines():
             if not line.strip(): continue
-            d = json.loads(line)
+            try: d = json.loads(line)
+            except ValueError: continue  # a broken line never counts as a verdict
+            if not isinstance(d, dict): continue
             if d.get("reviewer") == AUTHORIZED_REVIEWER and d.get("verdict") in VERDICTS: latest[d.get("submission_id")] = d
     return latest
 
@@ -298,8 +308,9 @@ def promote():
     _bind_paths()
     dec, out = _latest_decisions(), {}
     for p in _pending_files():
-        try: sub = json.loads(p.read_text())
+        try: sub = json.loads(p.read_text(encoding="utf-8"))
         except ValueError: continue
+        if not isinstance(sub, dict) or not isinstance(sub.get("record"), dict): continue
         sid = sub.get("submission_id")
         if sub.get("status") != "valid" or sid != p.stem or sid not in dec: continue  # run intake / await decision
         if dec[sid]["verdict"] == "reject":
@@ -317,6 +328,7 @@ if __name__ == "__main__":
     if not a or a[0] not in ("add", "query", "count", "submit", "intake", "decide", "promote", "append"): print(__doc__); sys.exit(1)
     _bind_paths()
     try:
+        if a[0] in ("add", "submit") and len(a) != 2: raise ValueError(f"usage: {a[0]} '<record json>'")
         if a[0] == "add": print(json.dumps(add(json.loads(a[1]))))
         elif a[0] == "append":
             if len(a) != 2: raise ValueError("usage: append <record.json>")
@@ -328,11 +340,17 @@ if __name__ == "__main__":
         elif a[0] == "decide":
             rest = a[1:]; reviewer = AUTHORIZED_REVIEWER
             if "--reviewer" in rest:
-                i = rest.index("--reviewer"); reviewer = rest[i + 1]; del rest[i:i + 2]
+                i = rest.index("--reviewer")
+                if i + 1 >= len(rest): raise ValueError("--reviewer needs a name, for example --reviewer Book")
+                reviewer = rest[i + 1]; del rest[i:i + 2]
             if len(rest) != 3: raise ValueError("usage: decide <submission_id> approve|reject '<reason>' [--reviewer Book]")
             print(json.dumps(decide(rest[0], rest[1], rest[2], reviewer)))
         else:
+            bad = [x for x in a[1:] if "=" not in x]
+            if bad: raise ValueError("usage: query key=value [key=value ...], for example query type=backtest")
             kw = dict(x.split("=", 1) for x in a[1:])
             for r in query(**kw): print(json.dumps(r))
     except (ValueError, IndexError) as e:
         print(f"REJECTED: {e}", file=sys.stderr); sys.exit(2)
+    except OSError as e:
+        print(f"REJECTED: could not read {getattr(e, 'filename', None) or 'the input file'} ({e.strerror or 'error'})", file=sys.stderr); sys.exit(2)

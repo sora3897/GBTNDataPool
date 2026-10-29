@@ -22,9 +22,12 @@ Why MetaAPI: the official `MetaTrader5` Python package talks to a MetaTrader ter
 2. **Make a MetaAPI account.** Go to metaapi.cloud and sign up. Check their current pricing and free-tier limits before you add anything.
 3. **Add your demo MT account.** In the MetaAPI dashboard, find the section for adding a trading account. Choose MT4 or MT5, then enter the demo login and server. Type the password on MetaAPI's own page, never in chat. MetaAPI needs the account's trading password (not the read-only investor password) to place demo orders.
 4. **Get the API token.** In the dashboard, find API access or tokens and create a token. Save it straight into your secret store or the masked input the coordinator offers. Don't paste it here.
-5. **Get the account id.** The dashboard lists your accounts, each with an id. Save that the same way.
-6. **Demo check.** The coordinator makes one read-only test call and checks that the account is a demo account. MetaAPI's account information includes the account's trade mode, which should say demo, and the server name should be a demo server. It shows you only "demo: yes" or "demo: no", never the balance or login. If it isn't clearly demo, stop and pick a demo account.
-7. **Done.** Mark it connected and return to the main menu. The desk still does nothing until you say start.
+5. **Get the account id.** The dashboard lists your accounts, each with an id. Save that the same way. The account id, login, and server name stay private: never in chat, a log, the repo, or the pool.
+6. **Make sure the account is deployed.** In the MetaAPI dashboard the account must show as deployed and connected to the broker before any call works. A just-added account can take a few minutes. If the test call says the account is not deployed or not connected, deploy it in the dashboard, wait, and try again.
+7. **Demo check.** The coordinator makes one read-only test call with MetaAPI's official SDK (`metaapi-cloud-sdk`) or its REST API, reading the token and account id from the secret store without printing them. It asks for the account information and reads only two fields from it: `type` and `tradeAllowed`. The account counts as demo only when `type` is exactly `ACCOUNT_TRADE_MODE_DEMO`; `ACCOUNT_TRADE_MODE_CONTEST`, `ACCOUNT_TRADE_MODE_REAL`, a missing value, or a failed call all count as not demo. The same response also carries the balance, equity, login, name, broker, and server, so the coordinator discards it right away and never prints, logs, or saves it. You see only "demo: yes" or "demo: no".
+   - If it is not clearly demo, stop and pick a demo account.
+   - If `tradeAllowed` is false, the account was most likely added with the read-only investor password. Update it in MetaAPI's dashboard with the trading password (typed on MetaAPI's page, never in chat).
+8. **Done.** Record only the result with `python3 tools/health_check.py --mark-demo-connected true` (or `false`) and return to the main menu. The desk still does nothing until you say start.
 
 ## NinjaTrader (futures), on a Sim account
 

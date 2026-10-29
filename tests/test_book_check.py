@@ -427,5 +427,12 @@ class FreeTextPrivacyTest(unittest.TestCase):
             self.assertEqual(privacy_reasons(text), [], text)
 
 
+    def test_prose_private_data_in_record_fields_is_rejected(self):
+        digits = "512" + "34567"
+        for text in ("it happened on my account " + digits, "my balance was $10,234.55", "password Hunter2" + "pass broke it"):
+            result = validate_record(record(payload={"note": text}))
+            self.assertFalse(result["ok"], text)
+            self.assertNotIn(digits, json.dumps(result["reasons"]))
+
 if __name__ == "__main__":
     unittest.main()
