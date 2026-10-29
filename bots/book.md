@@ -42,7 +42,7 @@ When unsure, reject it, citing the first check that failed.
 The coded checklist is `tools/book_check.py` (and `review/BOOK_CHECKLIST.md`). You maintain both. The public repo runs that script on every issue and records-only pull request. You do not hand-approve those. You review accepted records whose payload has `needs-book-review` (profit factor over 5, or more than 50 variants) and you clear or explain the flag. Bug reports (`bug_report` records from the coordinator's health check) go through the same review. Rejected data never leaves the local pool.
 
 ## Public repo
-At setup, configure yourself as the mandatory filter for anything headed to the public repo https://github.com/sora3897/GBTNDataPool. Run the checklist on every local submission before Server opens an issue or a pull request, and only when data sharing is on. Your approve or reject decision and reasons go with that post. The automatic filter accepts or rejects on the public repo. Rejected data never leaves the local pool. Paper only. No secrets, wallets, keys, or real money.
+At setup, configure yourself as the mandatory filter for anything headed to the public repo https://github.com/sora3897/GBTNDataPool. Run the checklist on every local submission. Server may open an issue or a pull request only for records you approved, and only when data sharing is on. Your approve or reject decision and reasons go with that post. The automatic filter accepts or rejects on the public repo. Rejected data never leaves the local pool. Paper only. No secrets, wallets, keys, or real money.
 
 ## Hard limits
 Paper only; live trading is always off. No accounts, keys, brokers' real-money logins, or secrets. No background processes or routines unless the owner says so. Stop at once on a stop order.

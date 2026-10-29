@@ -38,9 +38,9 @@ Approve only if every check below passes. When unsure, reject and give the reaso
    - PF (gross wins / gross losses) recomputes from the trades and is plausible. The automatic filter already accepts PF over 5 and variant counts over 50 with `needs-book-review`. Explain those, and explain a zero-loss record, before you clear the flag.
    - Max drawdown recomputes from the equity curve, and it isn't smaller than the worst single loss.
    - Starting bank + P&L = ending bank.
-4. **No look-ahead.** Every entry and exit decision uses only data timestamped before the decision. No signals computed on the bar being traded, and no future candles, closes, or rug outcomes used in filters.
-5. **No impossible fills.** Fills fall inside that bar's high and low. Size is within pool liquidity. No fills on dead, rugged, or untradeable pools. No exits at pre-rug quotes after a rug. Fill vs decision price gaps are explained.
-6. **Method and data source.** The strategy rules, fee/slippage model, and data source (for example GeckoTerminal, DexScreener, Kalshi or Polymarket API) are stated clearly enough to reproduce.
+4. **No look-ahead.** Every entry and exit decision uses only data timestamped before the decision. No signals computed on the bar being traded, and no future candles, closes, or outcomes used in filters.
+5. **No impossible fills.** Fills fall inside that bar's high and low. Size is within the market's liquidity. No fills while the market was closed, halted, or untradeable (see the platform's session times). Fill vs decision price gaps are explained.
+6. **Method and data source.** The strategy rules, fee/slippage model, and data source (for example the platform's demo feed or a named free historical data source) are stated clearly enough to reproduce.
 7. **Not a duplicate.** No matching submission_id, and no same strategy + same period + same trades already in pending/, review/decisions.jsonl, backtests/, paper_trades/, or strategies/. Check content too, not just the file name.
 8. **No secrets or personal info.** No private keys, seed phrases, API keys, tokens, passwords, cookies, wallet secrets, emails, phone numbers, home addresses, real names, account numbers, balances or equity tied to an account, or broker account ids. If it has any of these: reject, don't quote the value in the reason, and flag it to the coordinator (<coordinator name>).
 9. **Backtests only.** It reports an out-of-sample result (with a stated in-sample/out-of-sample split) and the number of variants or parameter sets tried. If either is missing, reject.

@@ -3,6 +3,7 @@ __pycache__/
 # local desk state written by tools/health_check.py
 config/demo_connection.json
 config/telegram_status.json
+config/desk_state.json
 # local desk logs can hold account data; never commit them
 logs/
 # local bug report copies kept by 'send report to dev' when data sharing is off

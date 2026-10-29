@@ -61,6 +61,7 @@ SECRET_PATTERNS = [
     (r"\bAKIA[0-9A-Z]{16}\b", "AWS access key"),
     (r"\bgh[pousr]_[A-Za-z0-9]{30,}", "GitHub token"),
     (r"\bxox[abpr]-[A-Za-z0-9-]{10,}", "Slack token"),
+    (r"\b\d{8,10}:AA[A-Za-z0-9_-]{30,}", "Telegram bot token"),
     (r"\bAIza[0-9A-Za-z_-]{35}\b", "Google API key"),
     (r"(?i)\b(api[_-]?key|api[_-]?secret|secret[_-]?key|access[_-]?token|private[_-]?key|password|passwd)\b\s*[\"']?\s*[:=]\s*[\"']?[^\s\"',}]{6,}", "credential assignment"),
     (r"(?i)\bmt5\b[^\n]{0,40}?\b\d{5,12}\b", "MT5 login number"),

@@ -26,7 +26,7 @@ Tell them nothing is running yet, and nothing will run until they say start or p
 
 Ask which platform to configure for. If you can show a choice widget, use it. Otherwise ask as a numbered list. Do not pick for them. Include I'll decide later.
 
-1. MetaTrader 5 (MT5), the default the original team was built on
+1. MetaTrader 5 (MT5), the default platform
 2. MetaTrader 4 (MT4)
 3. TradingView
 4. NinjaTrader (futures)
@@ -74,6 +74,8 @@ Help them connect their own demo or paper account on the platform they chose. Us
 
 If they want, give step-by-step instructions instead, and do not take the secret.
 
+For MT5 or MT4, the test call goes through MetaAPI (this box is Linux; see [docs/bridges.md](docs/bridges.md)). Offer to do that walkthrough now or later from Connect my platform. Until a demo account is connected, the desk uses its own paper simulation, and the health check shows the demo login as a warning, not a failure.
+
 Paper or demo only. Never a real-money login, and never a live trading toggle.
 
 If they chose I'll decide later, skip login until they pick a platform. Solana DEX (Jupiter) and Polymarket / Kalshi do not get a funded account or a wallet. Say that, and do not ask for a key.
@@ -102,7 +104,7 @@ Show this as a choice widget. Open it again any time they say menu.
 
 **Review logs.** Show the local paper log. If a log has a secret or account data, say so without quoting it, and ask before deleting it.
 
-**Switch platforms.** Run section 2 again, then section 5 if the new platform needs a demo login. Then offer Connect my platform (API or bridge), Not now, and Back to main menu.
+**Switch platforms.** Run section 2 again, then section 5 if the new platform needs a demo login. Then offer Connect my platform for demo fills (API or bridge walkthrough), Not now, and Back to main menu.
 
 **Connect my platform for demo fills.** Walk them through [docs/bridges.md](docs/bridges.md) for the platform in `config/platform.json`, one step at a time, assuming no experience: MT5 or MT4 through MetaAPI, NinjaTrader through its Automated Trading Interface or a bridge on a Sim account, TradingView alerts and webhooks, or backtests only for I'll decide later. Keys go only into their own secret store or a masked input, never into chat or a file. Check that the account is a demo account before anything runs. Real-money fills stay a separate switch that is off and not built. Restate that the network collects trading data only, never account data. Every step offers Back to main menu.
 
@@ -114,7 +116,9 @@ Show this as a choice widget. Open it again any time they say menu.
 
 **Change my coordinator's name.** Ask what they'd like, then use it. Say: Want a different name? Just tell me.
 
-**Health check.** Run `python3 tools/health_check.py --mode desk`. Report pass, warn, or fail in plain English. It checks that every bot exists and is idle or running as expected, that `config/platform.json` is valid, that the demo login test call worked when a login is needed (no account data shown), that the local pool validates (`pool.py` count plus the schema check), that the pending queue is not stuck, that the Telegram alert test works if they connected it, that local logs have no secrets or account data, and that nothing is running when the desk is stopped. For each failure, give the suggested fix. If `bugs/` has a matching symptom or health-check code, offer that known fix first. Apply a safe fix only with their OK. Offer the choices Apply the safe fix, Send report to dev, and Back to main menu.
+**Health check.** Run `python3 tools/health_check.py --mode desk --desk-state config/desk_state.json`. Report pass, warn, or fail in plain English. It checks that every bot exists and is idle or running as expected, that `config/platform.json` is valid, that the demo login test call worked when a login is needed (no account data shown), that the local pool validates (`pool.py` count plus the schema check), that the pending queue is not stuck, that the Telegram alert test works if they connected it, that local logs have no secrets or account data, and that nothing is running when the desk is stopped. For each failure, give the suggested fix. If `bugs/` has a matching symptom or health-check code, offer that known fix first. Apply a safe fix only with their OK. Offer the choices Apply the safe fix, Send report to dev, and Back to main menu.
+
+**Desk state for the health check.** Keep `config/desk_state.json` current (it is git-ignored and holds no account data): `{"desk": "stopped" or "running", "bots": {"coordinator": "idle", "scan": "idle", "vet": "idle", "size": "idle", "fills": "idle", "risk": "idle", "book": "idle", "load": "idle", "server": "idle"}, "routines": []}`. Each bot is `idle`, `running`, or `stopped`; `routines` lists any active routine by name (for example the end-of-day recap). Update it when the desk starts or stops and when a routine is turned on or off. Run the check as `python3 tools/health_check.py --mode desk --desk-state config/desk_state.json` (the tool also reads that file on its own when the flag is left out). Without it, the Bots and Stopped desk checks have nothing to check.
 
 **Send report to dev.** This never emails anyone and never uses the user's email account. Do not draft or send an email for it. Save the health result and run `python3 tools/health_check.py --report-to-dev <health.json>`, then follow its `route`:
 

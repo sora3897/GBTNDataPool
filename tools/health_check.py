@@ -427,8 +427,8 @@ def _check_login(root):
         )
     if not path.is_file() or not status or status.get("connected") is not True:
         return _check(
-            "demo-login", "Demo login", "fail",
-            "The demo login is not connected.",
+            "demo-login", "Demo login", "warn",
+            "The demo login is not connected yet. Paper fills use the desk's own simulation until it is.",
             "Connect your own demo or paper account from the menu. Use the platform's official login or API. "
             "Credentials stay in secure storage, never in chat, the repo, the pool, or a file. "
             "Ask for step-by-step instructions if you would rather do it yourself.",
