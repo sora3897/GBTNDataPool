@@ -13,6 +13,10 @@ We only collect trading data (instrument, side, size, entry and exit prices and 
 
 Show that note to the user before any login help. The same words are in [SETUP.md](SETUP.md).
 
+## Knowledge base and platform bridges
+
+[kb/](kb/README.md) is a short, original knowledge base: trading rules with citations ([kb/rules.md](kb/rules.md)), our backtest results with caveats ([kb/results.md](kb/results.md)), and topic summaries. Every desk loads it at setup, and bots read the rules and results before proposing a strategy. [docs/bridges.md](docs/bridges.md) is the step-by-step demo-account API and bridge walkthrough (MetaAPI for MT4/MT5, NinjaTrader ATI, TradingView webhooks).
+
 ## Data sharing
 
 `config/user_settings.json` holds `share_data` and `share_bugs`. During setup the user answers, with neither choice pre-selected, whether to share anonymized trading data and bug fixes. Both switches take that answer. The menu item Data sharing: ON/OFF toggles them later.

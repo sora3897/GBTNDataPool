@@ -1,0 +1,11 @@
+# Meme coins (short section)
+
+Paper or simulation only. No wallet, no private key, no funded account. The original desk studied this area a lot. Here's the condensed version.
+
+- **Most launches fail.** Only a small share of new launchpad tokens ever "graduate" to a main pool, and many are rug pulls or scams. Treat "is this a scam?" as the first gate. — Mancino, 2025 (https://arxiv.org/abs/2512.11850); Marino et al., 2026 (https://arxiv.org/abs/2602.14860); Xia et al., *SIGMETRICS*, 2021 (https://arxiv.org/abs/2109.00229).
+- **Pumps reverse fast.** A coordinated pump peaks within minutes and gives the gain back. Don't chase a vertical spike. — Xu & Livshits, *USENIX Security*, 2019 (https://arxiv.org/abs/1811.10109); Kamps & Kleinberg, *Crime Science*, 2018.
+- **Volume can be fake.** Wash trading and bot activity inflate volume and trade counts. Prefer unique buyers and net flow. — Szwajcok et al., 2026 (https://arxiv.org/abs/2609.10246); Victor & Weintraud, *WWW*, 2021 (https://arxiv.org/abs/2102.07001).
+- **Concentrated holdings are the main rug signal.** Check how much of the supply sits with the creator, bundled buyers and the top holders. — Hu et al., MELT, 2026 (https://arxiv.org/abs/2602.13480); Mazorra et al., 2022 (https://arxiv.org/abs/2201.07220).
+- **Hidden trading costs.** Pool price impact, fees, front-running and sandwich attacks, and failed transactions all cost more than a flat fee suggests. Simulate fills from pool depth and assume a sandwich tax. — Daian et al., "Flash Boys 2.0," *IEEE S&P*, 2020 (https://arxiv.org/abs/1904.05234); Zhou et al., *IEEE S&P*, 2021 (https://arxiv.org/abs/2009.14021); Milionis et al., LVR, 2022 (https://arxiv.org/abs/2208.06046); Adams et al., 2024 (https://arxiv.org/abs/2309.13648).
+- **Social hype often marks the exit.** Coordinated or bot-driven promotion is more often a dump warning than a buy signal, and attention tends to follow price rather than lead it. — Nizzoli et al., 2020 (https://arxiv.org/abs/2001.10289); Aslanidis, Bariviera & López, 2021 (https://arxiv.org/abs/2106.07104).
+- **Lottery-like demand.** Coins with extreme recent up-days tend to do worse afterward. — Grobys & Junttila, *Journal of International Financial Markets, Institutions and Money*, 2021.
