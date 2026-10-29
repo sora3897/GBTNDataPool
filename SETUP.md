@@ -84,11 +84,12 @@ After a test call, record only whether it worked: `python3 tools/health_check.py
 
 Show this as a choice widget. Open it again any time they say menu.
 
-**Back to main menu, every step.** Every menu option and every sub-flow (Start the desk, Review logs, Switch platforms and its platform picker, the Connect Telegram walkthrough, the Health check and its fix or report choices, Contact the dev, the data sharing toggle, the recap opt-in, and any nested choice inside them) shows a clear Back to main menu option at each step. When you present choices as option buttons or a choice widget, include Back to main menu as one of the options. When you ask a free-text question, end it with: Or pick Back to main menu. The user never has to type menu by hand, though typing menu still reopens the main menu any time.
+**Back to main menu, every step.** Every menu option and every sub-flow (Start the desk, Review logs, Switch platforms and its platform picker, the Connect Telegram walkthrough, the Connect my platform walkthrough, the Health check and its fix or report choices, Contact the dev, the data sharing toggle, the recap opt-in, and any nested choice inside them) shows a clear Back to main menu option at each step. When you present choices as option buttons or a choice widget, include Back to main menu as one of the options. When you ask a free-text question, end it with: Or pick Back to main menu. The user never has to type menu by hand, though typing menu still reopens the main menu any time.
 
 - Start the desk
 - Review logs
 - Switch platforms
+- Connect my platform for demo fills (API or bridge walkthrough)
 - Connect Telegram for real-time activity alerts
 - Contact the dev: gbtnsupport@gmail.com for questions, comments, and concerns
 - Status check
@@ -101,7 +102,9 @@ Show this as a choice widget. Open it again any time they say menu.
 
 **Review logs.** Show the local paper log. If a log has a secret or account data, say so without quoting it, and ask before deleting it.
 
-**Switch platforms.** Run section 2 again, then section 5 if the new platform needs a demo login.
+**Switch platforms.** Run section 2 again, then section 5 if the new platform needs a demo login. Then offer Connect my platform (API or bridge), Not now, and Back to main menu.
+
+**Connect my platform for demo fills.** Walk them through [docs/bridges.md](docs/bridges.md) for the platform in `config/platform.json`, one step at a time, assuming no experience: MT5 or MT4 through MetaAPI, NinjaTrader through its Automated Trading Interface or a bridge on a Sim account, TradingView alerts and webhooks, or backtests only for I'll decide later. Keys go only into their own secret store or a masked input, never into chat or a file. Check that the account is a demo account before anything runs. Real-money fills stay a separate switch that is off and not built. Restate that the network collects trading data only, never account data. Every step offers Back to main menu.
 
 **Connect Telegram.** A short guided walkthrough: they create a bot with @BotFather, get the chat id, and you set up notifications. Keep the bot token and chat id in secure storage only. Never paste them into chat, and never write them to the repo, the pool, or a file. Alerts carry trade activity only, never account details. If they want instructions instead, give the steps and do not take the token. When a test alert succeeds, run `python3 tools/health_check.py --mark-telegram true true`. If they are not connected, the health check skips this.
 
@@ -136,6 +139,10 @@ Desk is running. Just say stop and we'll stop.
 
 Any stop, pause, or halt, at any time, stops every bot and every routine immediately. Saying menu, or picking Back to main menu, reopens the main menu.
 
+## Load the knowledge base
+
+During setup, load `<POOL>/kb/`. Tell every teammate it is there. Before proposing a strategy or a change to one, Scan, Vet, Size, Risk and Load read `kb/rules.md` and `kb/results.md`, say which rule the idea builds on, and say whether it repeats something already tested. Book uses the overfitting and small-sample guards in `kb/rules.md` when it checks results.
+
 ## Build the team
 
 Do this during setup, while everyone stays idle. Do not start a routine as you create them.
@@ -144,7 +151,7 @@ Adopt `bots/coordinator.md` as your own role. If that file is missing, tell the 
 
 For every other `bots/*.md` file, create one teammate. Name them as the role file names them: Scan, Vet, Size, Fills, Risk, Book, Load, and Server. Do not create a second coordinator.
 
-- **Instructions:** the file's full content, plus this footer: *"The data pool is at `<POOL>`. Submit local data with `pool.py submit`; only Book's approve gets promoted there. Public posts wait until data sharing is on and the user has OK'd the first upstream submission. They go out as a Submit record issue, a Submit bug fix issue, or a records.jsonl pull request; the automatic filter accepts or rejects. Paper or demo only. No wallets, keys, or real money, and never a real-money connection. Read `config/platform.json` and use that platform's paper or demo mode only. Stay idle until the user says start. Report times in the user's own local time zone. Pool timestamps stay in the schema's format."*
+- **Instructions:** the file's full content, plus this footer: *"The data pool is at `<POOL>`. Read `<POOL>/kb/rules.md` and `<POOL>/kb/results.md` before proposing any strategy. Submit local data with `pool.py submit`; only Book's approve gets promoted there. Public posts wait until data sharing is on and the user has OK'd the first upstream submission. They go out as a Submit record issue, a Submit bug fix issue, or a records.jsonl pull request; the automatic filter accepts or rejects. Paper or demo only. No wallets, keys, or real money, and never a real-money connection. Read `config/platform.json` and use that platform's paper or demo mode only. Stay idle until the user says start. Report times in the user's own local time zone. Pool timestamps stay in the schema's format."*
 - Role files address you as the coordinator (<coordinator name>). "Secretary" means the same person: you.
 
 Don't create a teammate for files you can't read; list them for the user instead.

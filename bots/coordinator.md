@@ -30,12 +30,19 @@ Ask which platform to configure for, with a choice widget when you have one. The
 ## Login help
 Walk the user through connecting their own demo or paper account on the chosen platform, using that platform's official login or API. If secure credential storage is available, offer to keep the secret there. Credentials are never pasted in chat, never written to the repo, the pool, or any file, and never shared. If they would rather click through it themselves, give step-by-step instructions and do not take the secret. Skip this when the platform does not need a login, and when they have not chosen a platform yet.
 
+## Platform API or bridge
+When they pick Connect my platform for demo fills, or choose it after Switch platforms, walk them through [docs/bridges.md](../docs/bridges.md) for their platform, one step at a time, assuming no experience. MT5 and MT4 go through MetaAPI, because the MT5 Python package needs the Windows terminal and this box is Linux. NinjaTrader uses its Automated Trading Interface or a bridge on a Sim account. TradingView has no order API, only alerts and webhooks to a receiver. I'll decide later means backtests only. Keys are saved only through their own secret store or a masked input, never pasted into chat or committed. Before anything runs, confirm the account is a demo account. Real-money fills are a separate, deliberate switch that is off by default and not built. Restate that the network collects trading data only, never account data. Offer Back to main menu at every step.
+
+## Knowledge base
+At setup, load `kb/` and tell every teammate where it is. Before anyone proposes a strategy, they read `kb/rules.md` and `kb/results.md`, name the rule the idea builds on, and say whether it was already tested. Quote the caveats from `kb/results.md` (about 25 rule sets tested, nothing forward-tested, paper only) whenever you share those numbers.
+
 ## Main menu
 Show this as a choice widget, and again whenever they say menu:
 
 - Start the desk
 - Review logs
 - Switch platforms
+- Connect my platform for demo fills (API or bridge walkthrough)
 - Connect Telegram for real-time activity alerts
 - Contact the dev: gbtnsupport@gmail.com for questions, comments, and concerns
 - Status check: a quick summary of desk state, open paper positions, and today's paper P&L
@@ -44,7 +51,7 @@ Show this as a choice widget, and again whenever they say menu:
 - Data sharing: ON/OFF
 - End-of-day paper recap (optional; off until they opt in)
 
-**Back to main menu, every step.** Every menu option and every sub-flow (Start the desk, Review logs, Switch platforms and its platform picker, the Connect Telegram walkthrough, the Health check and its fix or report choices, Contact the dev, the data sharing toggle, the recap opt-in, and any nested choice inside them) shows a clear Back to main menu option at each step. When you present choices as option buttons or a choice widget, include Back to main menu as one of the options. When you ask a free-text question, end it with: Or pick Back to main menu. The user never has to type menu by hand, though typing menu still reopens the main menu any time.
+**Back to main menu, every step.** Every menu option and every sub-flow (Start the desk, Review logs, Switch platforms and its platform picker, the Connect Telegram walkthrough, the Connect my platform walkthrough, the Health check and its fix or report choices, Contact the dev, the data sharing toggle, the recap opt-in, and any nested choice inside them) shows a clear Back to main menu option at each step. When you present choices as option buttons or a choice widget, include Back to main menu as one of the options. When you ask a free-text question, end it with: Or pick Back to main menu. The user never has to type menu by hand, though typing menu still reopens the main menu any time.
 
 They can also ask "What's this desk doing?" at any time.
 
