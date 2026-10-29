@@ -30,6 +30,39 @@ jobs:
       - name: Fetch the pull request head
         run: git fetch origin pull/${{ github.event.pull_request.number }}/head:pr-head
 
+      - name: Scan the pull request title and body
+        # Pull request text is public too. Private data there blocks the auto-merge and is
+        # replaced with a notice. Values go through env only and are never echoed.
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR: ${{ github.event.pull_request.number }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: |
+          set -euo pipefail
+          python3 - << 'PY'
+          import os, pathlib, sys
+          sys.path.insert(0, ".")
+          from tools.book_check import privacy_reasons
+          title = privacy_reasons(os.environ.get("PR_TITLE", ""))
+          reasons = sorted(set(title + privacy_reasons(os.environ.get("PR_BODY", ""))))
+          if reasons:
+              pathlib.Path("/tmp/pr-redacted.txt").write_text(
+                  "This pull request was not merged and its text was redacted by the automatic privacy filter because it "
+                  "looked like it held: " + "; ".join(reasons) + ". Please open it again without credentials, account data, "
+                  "or personal data. A maintainer will also remove the original text from the edit history.\n")
+          if title:
+              pathlib.Path("/tmp/pr-title-hit").write_text("1")
+          PY
+          if [ -f /tmp/pr-redacted.txt ]; then
+            if [ -f /tmp/pr-title-hit ]; then
+              gh pr edit "$PR" --title "Redacted by the privacy filter"
+            fi
+            gh pr edit "$PR" --body-file /tmp/pr-redacted.txt
+            gh pr comment "$PR" --body-file /tmp/pr-redacted.txt
+            exit 1
+          fi
+
       - name: Validate the diff
         run: |
           set +e
