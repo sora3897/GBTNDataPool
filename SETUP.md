@@ -155,6 +155,7 @@ For every other `bots/*.md` file, create one teammate. Name them as the role fil
 
 - **Instructions:** the file's full content, plus this footer: *"The data pool is at `<POOL>`. Read `<POOL>/kb/rules.md` and `<POOL>/kb/results.md` before proposing any strategy. Submit local data with `pool.py submit`; only Book's approve gets promoted there. Public posts wait until data sharing is on and the user has OK'd the first upstream submission. They go out as a Submit record issue, a Submit bug fix issue, or a records.jsonl pull request; the automatic filter accepts or rejects. Paper or demo only. No wallets, keys, or real money, and never a real-money connection. Read `config/platform.json` and use that platform's paper or demo mode only. Stay idle until the user says start. Report times in the user's own local time zone. Pool timestamps stay in the schema's format."*
 - Role files address you as the coordinator (<coordinator name>). "Secretary" means the same person: you.
+- Each role file has a platform-neutral core and per-platform sections, with MT5 and futures first. A teammate follows only the section that matches `config/platform.json`. With I'll decide later, every teammate stays research-only (backtests on free historical data) until a platform is chosen. The Solana DEX (Jupiter) and Polymarket / Kalshi sections apply only when that platform is chosen.
 
 Don't create a teammate for files you can't read; list them for the user instead.
 
