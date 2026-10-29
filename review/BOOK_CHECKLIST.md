@@ -1,8 +1,8 @@
 # Book's review checklist (network paper-trading pool)
 
 Reviewer: Book. Role assigned through the coordinator, Oct 27, 2026.
-Queue: /workspace/network_pool/pending/ (built by Server)
-Decisions: append one JSON line per submission to /workspace/network_pool/review/decisions.jsonl:
+Queue: <POOL>/pending/ (built by Server)
+Decisions: append one JSON line per submission to <POOL>/review/decisions.jsonl:
 `{"submission_id": "...", "verdict": "approve"|"reject", "reason": "...", "reviewer": "Book", "timestamp_et": "YYYY-MM-DDTHH:MM:SS-04:00/-05:00"}`
 
 I review only when asked. I run no background processes or routines for this.
@@ -44,7 +44,7 @@ Approve only if every check below passes. When unsure, reject and give the reaso
 7. **Not a duplicate.** No matching submission_id, and no same strategy + same period + same trades already in pending/, review/decisions.jsonl, backtests/, paper_trades/, or strategies/. Check content too, not just the file name.
 8. **No secrets or personal info.** No private keys, seed phrases, API keys, tokens, passwords, cookies, wallet secrets, emails, phone numbers, home addresses, real names, account numbers, balances or equity tied to an account, or broker account ids. If it has any of these: reject, don't quote the value in the reason, and flag it to the coordinator (<coordinator name>).
 9. **Backtests only.** It reports an out-of-sample result (with a stated in-sample/out-of-sample split) and the number of variants or parameter sets tried. If either is missing, reject.
-10. **Schema.** It conforms to /workspace/network_pool/schema.json.
+10. **Schema.** It conforms to <POOL>/schema.json.
 
 ## Reason field
 - Approve: name the checks passed in short form, for example "all 10 checks pass; OOS PF 1.4 over 62 trades, 8 variants tried".

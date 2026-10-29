@@ -84,6 +84,11 @@ def run_self_audit():
 
 
 if __name__ == "__main__":
+    import argparse
+    argparse.ArgumentParser(
+        description="Run the backtest-pipeline self-audit (look-ahead, labels, costs, masks). "
+        "Takes no arguments, reads no data, and prints a JSON result. Exit 0 means every check passed."
+    ).parse_args()
     result = run_self_audit()
     print(json.dumps(result, indent=2))
     sys.exit(0 if result["ok"] else 1)

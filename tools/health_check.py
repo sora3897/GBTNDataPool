@@ -95,12 +95,22 @@ def _iter_records(root):
 def check_record_lines(root):
     """Schema and Book's checklist for every stored record. Skips the self-duplicate hash."""
     problems = []
+    superseded = set()
+    for _folder, _path, _lineno, line in _iter_records(root):
+        try:
+            sup = (json.loads(line).get("payload") or {}).get("supersedes")
+        except (json.JSONDecodeError, AttributeError):
+            continue
+        if isinstance(sup, str) and sup:
+            superseded.add(sup)
     for folder, _path, lineno, line in _iter_records(root):
         try:
             rec = json.loads(line)
         except json.JSONDecodeError:
             problems.append(f"{folder}/records.jsonl:{lineno}: line is not JSON")
             continue
+        if isinstance(rec, dict) and rec.get("id") in superseded:
+            continue  # corrected by a later record (append-only fix path)
         result = validate_record(rec, pool_root=None)
         if not result["ok"]:
             ident = result.get("id") or str(lineno)
@@ -1171,7 +1181,8 @@ def main(argv):
     parser.add_argument("--json-out")
     parser.add_argument("--desk-state", help="JSON file with desk and bot states")
     parser.add_argument("--apply-safe-fixes", nargs="+", default=None)
-    parser.add_argument("--sync-health-issue", metavar="HEALTH_JSON")
+    parser.add_argument("--sync-health-issue", metavar="HEALTH_JSON",
+                        help="CI only (.github/workflows/health.yml). Uses gh and git push; refuses to run outside GitHub Actions.")
     parser.add_argument("--mark-demo-connected", choices=("true", "false"))
     parser.add_argument("--mark-telegram", nargs=2, metavar=("CONNECTED", "TEST_OK"))
     parser.add_argument("--report-to-dev", metavar="HEALTH_JSON",
@@ -1183,6 +1194,9 @@ def main(argv):
     if args.mark_telegram is not None:
         mark_telegram(root, args.mark_telegram[0] == "true", args.mark_telegram[1] == "true")
     if args.sync_health_issue:
+        if os.environ.get("GITHUB_ACTIONS") != "true":
+            print("--sync-health-issue only runs inside GitHub Actions. Nothing was posted.", file=sys.stderr)
+            return 2
         result = json.loads(Path(args.sync_health_issue).read_text(encoding="utf-8"))
         plan = sync_health_issue(root, result)
         _emit({key: value for key, value in plan.items() if key != "bug"}, args.json_out)

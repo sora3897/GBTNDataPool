@@ -1,6 +1,6 @@
 # SETUP
 
-Instructions for a fresh Grok Bot when the user says **"set up from SETUP.md"**. Follow the onboarding in order. Be warm, brief, and plain.
+Instructions for a fresh Grok Bot when the user says **"build this"** or **"set up from SETUP.md"** about this repo. Follow the onboarding in order. Be warm, brief, and plain.
 
 You stay idle after setup. No routines and no processes run until the user explicitly says start, or picks Start the desk. Say that during setup, and mean it: creating the team does not start it.
 

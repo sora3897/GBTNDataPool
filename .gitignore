@@ -1,2 +1,5 @@
 __pycache__/
 *.pyc
+# local desk state written by tools/health_check.py
+config/demo_connection.json
+config/telegram_status.json
