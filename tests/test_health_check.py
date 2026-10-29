@@ -23,6 +23,7 @@ from tools.health_check import (
     run_desk_health,
     run_repo_health,
     scan_repo,
+    send_report_to_dev,
 )
 from tools.sharing import confirm_upstream, set_sharing
 
@@ -183,6 +184,51 @@ class DeskFixture(unittest.TestCase):
         self.assertTrue(allowed["allowed"])
         self.assertEqual(allowed["record"]["type"], "bug_report")
 
+    def _failing_result(self):
+        state = {"desk": "stopped", "bots": {name: "running" for name in EXPECTED_BOTS}}
+        result = run_desk_health(self.root, desk_state=state, now=NOW)
+        self.assertEqual(result["status"], "fail")
+        return result
+
+    def test_report_to_dev_stays_local_when_sharing_is_off(self):
+        plan = send_report_to_dev(self.root, self._failing_result(), "2026-10-27T12:00:00-04:00")
+        self.assertEqual(plan["route"], "local")
+        self.assertFalse(plan["allowed"])
+        self.assertFalse(plan["email_sent"])
+        self.assertFalse(plan["uses_user_email"])
+        self.assertIn("stays on your machine", plan["message"])
+        self.assertIn("Turn data sharing on", plan["options"])
+        self.assertIn("Show the dev's contact", plan["options"])
+        self.assertIn("Back to main menu", plan["options"])
+        self.assertEqual(plan["support_contact"], "gbtnsupport@gmail.com")
+
+    def test_report_to_dev_goes_through_the_pool_when_sharing_is_on(self):
+        set_sharing(self.root, True)
+        result = self._failing_result()
+        asking = send_report_to_dev(self.root, result, "2026-10-27T12:00:00-04:00")
+        self.assertEqual(asking["route"], "pool")
+        self.assertEqual(asking["reason"], "needs_confirmation")
+        self.assertFalse(asking["email_sent"])
+        self.assertIn("Back to main menu", asking["options"])
+        confirm_upstream(self.root)
+        plan = send_report_to_dev(self.root, result, "2026-10-27T12:00:00-04:00")
+        self.assertTrue(plan["allowed"])
+        self.assertFalse(plan["email_sent"])
+        self.assertIn("bug-fix.yml", plan["submit_via"])
+        record = plan["record"]
+        self.assertEqual(record["type"], "bug_report")
+        for key in ("symptom", "root_cause", "fix_steps", "status"):
+            self.assertTrue(record["payload"][key], key)
+        self.assertEqual(record["payload"]["status"], "open")
+        accepted = accept_bug_record(self.root, record)
+        self.assertTrue(accepted["ok"], accepted["reasons"])
+
+    def test_report_to_dev_with_nothing_to_report(self):
+        result = run_desk_health(self.root, now=NOW)
+        plan = send_report_to_dev(self.root, result)
+        self.assertEqual(plan["route"], "none")
+        self.assertFalse(plan["email_sent"])
+
     def test_accept_bug_record_and_reject_account_data(self):
         accepted = accept_bug_record(self.root, bug())
         self.assertTrue(accepted["ok"], accepted["reasons"])
@@ -296,6 +342,20 @@ fix_steps:
         self.assertIn("Health & bug fixes", readme)
         self.assertIn("## Health and bug fixes", setup)
         self.assertIn("gbtnsupport@gmail.com", setup)
+        welcome = (
+            "A message from the dev: Hello, and thank you for your interest in the Grok Bot Trading Network. "
+            "This network is still in early stages of development and my goal is to be able to one day have a "
+            "steady blueprint that people can consistently build to benefit them. It is recommended you start "
+            "this on paper trade, as the data your desk gathers will benefit every single instance run by you "
+            "and everyone who takes part in testing. Just say 'build this' and the desk will walk you through the set up"
+        )
+        self.assertIn(welcome, setup)
+        self.assertIn(welcome, coordinator)
+        self.assertIn("include Back to main menu as one of the options", setup)
+        self.assertIn("include Back to main menu as one of the options", coordinator)
+        self.assertIn("never emails anyone and never uses the user's email account", setup)
+        self.assertIn("never emails anyone and never uses the user's email account", coordinator)
+        self.assertNotIn("Say one short paragraph: this is a paper-trading desk.", setup)
         blob = []
         for path in ROOT.rglob("*"):
             if not path.is_file() or any(part in {".git", "__pycache__"} for part in path.parts):

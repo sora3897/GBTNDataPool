@@ -20,7 +20,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 import pool
-from tools.book_check import extract_json, privacy_reasons, validate_record
+from tools.book_check import SUPPORT_EMAIL, extract_json, privacy_reasons, validate_record
 from tools.sharing import load_settings
 
 NY = ZoneInfo("America/New_York")
@@ -635,7 +635,7 @@ def plain_summary(result):
         if known and known.get("fix_steps"):
             line += " Known fix (" + str(known.get("status") or "recorded") + "): " + "; ".join(known["fix_steps"])
         lines.append(line)
-    lines.append("Say the word if you want me to apply a safe fix, or to draft a bug report for you to review.")
+    lines.append("Say the word if you want me to apply a safe fix, or to send a report to the dev through the pool.")
     return "\n".join(lines)
 
 
@@ -951,6 +951,114 @@ def accept_bug_record(root, record):
         _restore_root(old)
 
 
+BUG_COMPONENTS = {
+    "bots": "coordinator",
+    "platform": "platform",
+    "demo-login": "login",
+    "pool": "server",
+    "pending-queue": "server",
+    "telegram": "telegram",
+    "secrets-in-logs": "logs",
+    "stopped-desk": "coordinator",
+    "settings": "sharing",
+}
+
+
+def bug_record_from_health(root, result, timestamp_et=None):
+    """Turn the first failing (or warning) check into a bug_report record for the pool.
+
+    The record carries symptom, cause, fix steps, and status only. No logs,
+    no account values, and no email address of the user.
+    """
+    checks = result.get("checks") or []
+    bad = [item for item in checks if item.get("status") == "fail"]
+    bad = bad or [item for item in checks if item.get("status") == "warn"]
+    if not bad:
+        return None
+    item = bad[0]
+    known = item.get("known_fix") or {}
+    steps = list(known.get("fix_steps") or [])
+    if not steps and item.get("fix"):
+        steps = [item["fix"]]
+    if not steps:
+        steps = ["Run python3 tools/health_check.py --mode desk and follow the suggested fix"]
+    platform_data, _ = _platform_data(root)
+    platform = (platform_data or {}).get("platform") or "undecided"
+    if not isinstance(platform, str):
+        platform = "undecided"
+    timestamp_et = timestamp_et or datetime.now(NY).isoformat(timespec="seconds")
+    record = {
+        "timestamp_et": timestamp_et,
+        "source_bot": "health-check",
+        "type": "bug_report",
+        "symbol": "DESK",
+        "label": "paper",
+        "payload": {
+            "symptom": f"{item.get('name') or item.get('code')}: {item.get('detail') or 'health check failed'}",
+            "component": BUG_COMPONENTS.get(item.get("code"), "pipeline"),
+            "platform": platform,
+            "health_check_code": str(item.get("code") or "unknown"),
+            "root_cause": str(known.get("root_cause") or "Not known yet. Reported from the desk health check."),
+            "fix_steps": [str(step) for step in steps],
+            "status": "open",
+            "fixed_in": "",
+            "supersedes": "",
+        },
+    }
+    record["id"] = _bug_id(record)
+    return record
+
+
+def send_report_to_dev(root, result, timestamp_et=None):
+    """Plan the health check's 'send report to dev' step.
+
+    Never sends or drafts an email, and never uses the user's email account.
+    Sharing on: the report becomes a bug_report record that goes through the
+    pool's Submit bug fix issue or a records-only pull request, so the
+    automatic trading-data-only filter applies. Sharing off: it stays local.
+    """
+    root = Path(root)
+    contact = "You can also write to " + SUPPORT_EMAIL + " yourself if you like."
+    base = {"email_sent": False, "uses_user_email": False, "support_contact": SUPPORT_EMAIL}
+    record = bug_record_from_health(root, result, timestamp_et)
+    if record is None:
+        return dict(base, route="none", record=None, allowed=False,
+                    message="The health check passed, so there is nothing to report.",
+                    options=["Back to main menu"])
+    try:
+        settings = load_settings(root)
+    except (ValueError, json.JSONDecodeError):
+        settings = {"share_data": False, "share_bugs": False, "upstream_confirmed": False}
+    if not settings.get("share_bugs"):
+        return dict(
+            base, route="local", record=record, allowed=False, settings=settings,
+            message=(
+                "Data sharing is off, so this report stays on your machine and nothing is sent. "
+                "I can turn sharing on so it goes to the pool through the automatic filter, "
+                "or show you the dev's contact."
+            ),
+            options=["Turn data sharing on", "Show the dev's contact", "Back to main menu"],
+        )
+    plan = prepare_upstream(root, "bugs", record)
+    plan.update(base)
+    plan["route"] = "pool"
+    plan["submit_via"] = "Submit bug fix issue (.github/ISSUE_TEMPLATE/bug-fix.yml) or a pull request that only appends to bugs/records.jsonl"
+    if plan.get("reason") == "rejected":
+        plan["message"] = "The automatic filter would reject this report, so nothing was sent. It stays local."
+        plan["options"] = ["Show the dev's contact", "Back to main menu"]
+    elif plan.get("reason") == "needs_confirmation":
+        plan["record"] = record
+        plan["message"] = (
+            "This report goes to the pool as a bug record through the automatic filter (trading data only). "
+            "Share it? " + contact
+        )
+        plan["options"] = ["Yes, share it", "No, keep it local", "Back to main menu"]
+    else:
+        plan["message"] = "Filing this as a bug record in the pool. The automatic filter accepts or rejects it. " + contact
+        plan["options"] = ["Back to main menu"]
+    return plan
+
+
 def render_health_issue(result):
     lines = [
         "The repo health check failed. This note has no credentials and no account data.",
@@ -1066,6 +1174,8 @@ def main(argv):
     parser.add_argument("--sync-health-issue", metavar="HEALTH_JSON")
     parser.add_argument("--mark-demo-connected", choices=("true", "false"))
     parser.add_argument("--mark-telegram", nargs=2, metavar=("CONNECTED", "TEST_OK"))
+    parser.add_argument("--report-to-dev", metavar="HEALTH_JSON",
+                        help="Plan 'send report to dev' from a saved desk health result. Never emails.")
     args = parser.parse_args(argv)
     root = Path(args.pool)
     if args.mark_demo_connected is not None:
@@ -1076,6 +1186,10 @@ def main(argv):
         result = json.loads(Path(args.sync_health_issue).read_text(encoding="utf-8"))
         plan = sync_health_issue(root, result)
         _emit({key: value for key, value in plan.items() if key != "bug"}, args.json_out)
+        return 0
+    if args.report_to_dev:
+        result = json.loads(Path(args.report_to_dev).read_text(encoding="utf-8"))
+        _emit(send_report_to_dev(root, result), args.json_out)
         return 0
     desk_state = _read_json(args.desk_state) if args.desk_state else None
     if args.apply_safe_fixes is not None:
